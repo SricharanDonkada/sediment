@@ -1,0 +1,8 @@
+# Superpowers design specs and implementation plans — local, not committed
+docs/superpowers/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/

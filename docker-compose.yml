@@ -1,13 +1,13 @@
 # Sediment — local development stack
 #
-# Datastores and the task queue broker for the Phase 1 pipeline:
+# Datastores and queue for the Phase 1 pipeline:
 #   - postgres : structured facts table + pgvector embeddings (the knowledge store)
 #   - neo4j    : entity/relationship graph extracted from transcripts
-#   - redis    : Celery broker + result backend for the orchestrator
+#   - redis    : queue broker (plain Redis list) for the pipeline
 #
-# Service containers (ingestion, transcription, extraction, knowledge-api,
-# realtime, orchestrator, web) are intentionally NOT defined yet — this stack
-# only provisions infrastructure. Bring it up with `docker compose up -d`.
+# Application services: `ingestion` is defined below. The remaining services
+# (transcription, extraction, knowledge-api, realtime, orchestrator, web) are
+# not defined yet. Bring the stack up with `docker compose up -d`.
 
 name: sediment
 
@@ -82,6 +82,28 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: services/ingestion/Dockerfile
+    container_name: sediment-ingestion
+    restart: unless-stopped
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sediment}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-sediment-dev}
+      MINIO_SECURE: "false"
+      INGESTION_BUCKET: ${INGESTION_BUCKET:-audio}
+      REDIS_URL: redis://redis:6379/0
+      INGESTION_QUEUE: ${INGESTION_QUEUE:-ingestion_queue}
+    ports:
+      - "${INGESTION_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
 volumes:
   postgres-data:
