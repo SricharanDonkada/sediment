@@ -12,10 +12,8 @@ def test_ensure_bucket_then_put_and_read_back():
     storage.put(key, payload)
 
     client = storage._client()
-    obj = client.get_object(settings.ingestion_bucket, key)
     try:
-        assert obj.read() == payload
+        with client.get_object(settings.ingestion_bucket, key) as obj:
+            assert obj.read() == payload
     finally:
-        obj.close()
-        obj.release_conn()
         client.remove_object(settings.ingestion_bucket, key)
