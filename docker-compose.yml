@@ -1,0 +1,71 @@
+# Sediment — local development stack
+#
+# Datastores and the task queue broker for the Phase 1 pipeline:
+#   - postgres : structured facts table + pgvector embeddings (the knowledge store)
+#   - neo4j    : entity/relationship graph extracted from transcripts
+#   - redis    : Celery broker + result backend for the orchestrator
+#
+# Service containers (ingestion, transcription, extraction, knowledge-api,
+# realtime, orchestrator, web) are intentionally NOT defined yet — this stack
+# only provisions infrastructure. Bring it up with `docker compose up -d`.
+
+name: sediment
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sediment-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sediment}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sediment}
+      POSTGRES_DB: ${POSTGRES_DB:-sediment}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sediment} -d ${POSTGRES_DB:-sediment}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: sediment-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-sediment-dev}
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"   # HTTP browser
+      - "${NEO4J_BOLT_PORT:-7687}:7687"   # Bolt driver
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: sediment-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  neo4j-data:
+  neo4j-logs:
+  redis-data:
