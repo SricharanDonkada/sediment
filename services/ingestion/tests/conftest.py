@@ -21,3 +21,21 @@ def stereo_44k_wav_bytes() -> bytes:
             capture_output=True,
         )
         return out.read_bytes()
+
+
+@pytest.fixture(scope="session")
+def mp3_bytes() -> bytes:
+    """A 1-second 440Hz tone encoded as MP3 — a compressed format, to exercise
+    the bytes path with something other than WAV."""
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "in.mp3"
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-f", "lavfi",
+                "-i", "sine=frequency=440:duration=1",
+                "-ac", "2", "-ar", "44100", "-codec:a", "libmp3lame", str(out),
+            ],
+            check=True,
+            capture_output=True,
+        )
+        return out.read_bytes()

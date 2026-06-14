@@ -1,7 +1,9 @@
 import io
 import wave
 
-from app.audio import normalize
+import pytest
+
+from app.audio import normalize, AudioProcessingError
 
 
 def _wav_params(data: bytes):
@@ -26,8 +28,12 @@ def test_normalize_accepts_path(tmp_path, stereo_44k_wav_bytes):
 
 
 def test_normalize_rejects_garbage():
-    import pytest
-    from app.audio import AudioProcessingError
-
     with pytest.raises(AudioProcessingError):
         normalize(b"this is not audio")
+
+
+def test_normalize_compressed_bytes_with_suffix(mp3_bytes):
+    out = normalize(mp3_bytes, suffix=".mp3")
+    framerate, channels = _wav_params(out)
+    assert framerate == 16000
+    assert channels == 1

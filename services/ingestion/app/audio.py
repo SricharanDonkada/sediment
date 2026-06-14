@@ -7,15 +7,18 @@ class AudioProcessingError(Exception):
     """Raised when ffmpeg fails to decode/normalize the input audio."""
 
 
-def normalize(source: bytes | str) -> bytes:
+def normalize(source: bytes | str, *, suffix: str = "") -> bytes:
     """Convert any audio input to 16kHz mono WAV bytes via ffmpeg.
 
     `source` is either raw audio bytes (upload path) or a path to an audio
-    file on disk (YouTube path). Returns the WAV bytes.
+    file on disk (YouTube path). `suffix` is an optional filename extension
+    (e.g. ".mp3") used to hint ffmpeg's demuxer for the bytes path; it is
+    ignored when `source` is a path (the path keeps its own extension).
+    Returns the WAV bytes.
     """
     with tempfile.TemporaryDirectory() as d:
         if isinstance(source, bytes):
-            in_path = Path(d) / "input"
+            in_path = Path(d) / f"input{suffix}"
             in_path.write_bytes(source)
         else:
             in_path = Path(source)
