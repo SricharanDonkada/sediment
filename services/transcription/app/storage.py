@@ -32,11 +32,16 @@ def ensure_bucket() -> None:
 def get_audio(bucket: str, key: str) -> str:
     """Download the audio object to a temp .wav file and return its path.
 
-    The caller owns the file and must delete it.
+    The caller owns the file and must delete it. If the download fails, the
+    temp file is removed before the error propagates.
     """
     fd, path = tempfile.mkstemp(suffix=".wav")
     os.close(fd)
-    _client().fget_object(bucket, key, path)
+    try:
+        _client().fget_object(bucket, key, path)
+    except Exception:
+        os.unlink(path)
+        raise
     return path
 
 

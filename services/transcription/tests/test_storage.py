@@ -1,3 +1,5 @@
+import io
+import os
 import uuid
 
 from app import storage
@@ -20,8 +22,6 @@ def test_ensure_bucket_then_put_transcript_and_read_back():
 
 
 def test_get_audio_downloads_to_path():
-    import io
-
     client = storage._client()
     if not client.bucket_exists("audio"):
         client.make_bucket("audio")
@@ -34,7 +34,5 @@ def test_get_audio_downloads_to_path():
         with open(path, "rb") as f:
             assert f.read() == payload
     finally:
-        import os
-
         os.unlink(path)
         client.remove_object("audio", key)
