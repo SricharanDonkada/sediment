@@ -5,9 +5,9 @@
 #   - neo4j    : entity/relationship graph extracted from transcripts
 #   - redis    : queue broker (plain Redis list) for the pipeline
 #
-# Application services: `ingestion` is defined below. The remaining services
-# (transcription, extraction, knowledge-api, realtime, orchestrator, web) are
-# not defined yet. Bring the stack up with `docker compose up -d`.
+# Application services: `ingestion` and `transcription` are defined below. The
+# remaining services (extraction, knowledge-api, realtime, orchestrator, web)
+# are not defined yet. Bring the stack up with `docker compose up -d`.
 
 name: sediment
 
@@ -105,9 +105,38 @@ services:
       minio:
         condition: service_healthy
 
+  transcription:
+    build:
+      context: .
+      dockerfile: services/transcription/Dockerfile
+    container_name: sediment-transcription
+    restart: unless-stopped
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sediment}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-sediment-dev}
+      MINIO_SECURE: "false"
+      TRANSCRIPTS_BUCKET: ${TRANSCRIPTS_BUCKET:-transcripts}
+      REDIS_URL: redis://redis:6379/0
+      INGESTION_QUEUE: ${INGESTION_QUEUE:-ingestion_queue}
+      TRANSCRIPTION_QUEUE: ${TRANSCRIPTION_QUEUE:-transcription_queue}
+      WHISPER_MODEL: ${WHISPER_MODEL:-large-v3-turbo}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      HF_TOKEN: ${HF_TOKEN:-}
+      HF_HOME: /models
+    volumes:
+      - hf-cache:/models
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   neo4j-data:
   neo4j-logs:
   redis-data:
   minio-data:
+  hf-cache:
