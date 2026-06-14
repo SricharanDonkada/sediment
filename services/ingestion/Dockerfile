@@ -5,8 +5,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# uv for dependency management.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# uv for dependency management. Pinned for reproducible builds.
+COPY --from=ghcr.io/astral-sh/uv:0.11.21 /uv /bin/uv
 
 WORKDIR /app
 # Copy both the service and its local path dependency.
