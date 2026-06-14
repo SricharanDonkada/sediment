@@ -14,10 +14,18 @@ def _load() -> Pipeline:
     """
     global _pipeline
     if _pipeline is None:
+        if not settings.hf_token:
+            raise RuntimeError(
+                "HF_TOKEN is required for diarization: pyannote community-1 is a "
+                "gated model. Set HF_TOKEN and accept the model terms on Hugging Face."
+            )
         _pipeline = Pipeline.from_pretrained(
             settings.diarization_model,
-            use_auth_token=settings.hf_token or None,
+            use_auth_token=settings.hf_token,
         )
+        # pyannote shares the device flag with Whisper: a single-GPU box runs both
+        # on CUDA, a CPU box runs both on CPU. There is no separate diarization
+        # device setting by design (MVP); revisit if split-device deploys are needed.
         if settings.whisper_device == "cuda":
             import torch
 

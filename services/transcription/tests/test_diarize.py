@@ -26,3 +26,13 @@ def test_diarize_converts_annotation_tracks(monkeypatch):
         SpeakerTurn(start=0.0, end=1.5, speaker="SPEAKER_00"),
         SpeakerTurn(start=1.5, end=2.0, speaker="SPEAKER_01"),
     ]
+
+
+def test_load_requires_hf_token(monkeypatch):
+    import pytest
+
+    monkeypatch.setattr(diarize, "_pipeline", None)
+    monkeypatch.setattr(diarize.settings, "hf_token", "")
+
+    with pytest.raises(RuntimeError, match="HF_TOKEN"):
+        diarize._load()
