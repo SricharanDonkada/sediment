@@ -10,7 +10,10 @@ def _client() -> redis.Redis:
     """Lazily build a singleton Redis client from settings."""
     global _redis
     if _redis is None:
-        _redis = redis.Redis.from_url(settings.redis_url)
+        # socket_timeout=None: blocking commands (BRPOPLPUSH) own the wait;
+        # a finite socket timeout races with the command timeout and raises
+        # TimeoutError before the blocking call can return cleanly.
+        _redis = redis.Redis.from_url(settings.redis_url, socket_timeout=None)
     return _redis
 
 
