@@ -34,9 +34,13 @@ def _load() -> Pipeline:
 
 
 def diarize(path: str) -> list[SpeakerTurn]:
-    """Diarize an audio file into a list of speaker-labeled time spans."""
-    annotation = _load()(path)
+    """Diarize an audio file into a list of speaker-labeled time spans.
+
+    community-1 returns a DiarizeOutput; iterate via .speaker_diarization
+    which yields (turn, speaker) pairs (not Annotation.itertracks).
+    """
+    output = _load()(path)
     return [
-        SpeakerTurn(start=segment.start, end=segment.end, speaker=speaker)
-        for segment, _track, speaker in annotation.itertracks(yield_label=True)
+        SpeakerTurn(start=turn.start, end=turn.end, speaker=speaker)
+        for turn, speaker in output.speaker_diarization
     ]
