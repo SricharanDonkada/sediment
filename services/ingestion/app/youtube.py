@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -9,8 +10,11 @@ class YouTubeDownloadError(Exception):
 
 
 def download(url: str) -> str:
-    """Download best available audio for `url` to a temp file. Returns the
-    path. Caller is responsible for normalizing and cleaning up the file.
+    """Download best available audio for `url` to a fresh temp directory.
+
+    Returns the path to the downloaded file. On success the caller owns the
+    returned file AND its parent temp directory (remove the directory when
+    done). On failure the temp directory is cleaned up here before raising.
     """
     tmp_dir = tempfile.mkdtemp(prefix="ytdl-")
     opts = {
@@ -25,4 +29,5 @@ def download(url: str) -> str:
             info = ydl.extract_info(url, download=True)
             return ydl.prepare_filename(info)
     except Exception as exc:  # noqa: BLE001 — surface any yt-dlp failure uniformly
+        shutil.rmtree(tmp_dir, ignore_errors=True)
         raise YouTubeDownloadError(str(exc)) from exc
