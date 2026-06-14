@@ -21,7 +21,7 @@ def _load() -> Pipeline:
             )
         _pipeline = Pipeline.from_pretrained(
             settings.diarization_model,
-            use_auth_token=settings.hf_token,
+            token=settings.hf_token,
         )
         # pyannote shares the device flag with Whisper: a single-GPU box runs both
         # on CUDA, a CPU box runs both on CPU. There is no separate diarization
