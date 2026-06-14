@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sediment — Ingest Audio</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 3rem auto; padding: 0 1rem; }
+    fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 1rem; padding: 1rem; }
+    label { display: block; font-weight: 600; margin-bottom: .5rem; }
+    input[type=text] { width: 100%; padding: .5rem; box-sizing: border-box; }
+    button { padding: .6rem 1.2rem; font-size: 1rem; cursor: pointer; }
+    #result { margin-top: 1rem; padding: 1rem; border-radius: 8px; white-space: pre-wrap; }
+    .ok { background: #e6ffed; } .err { background: #ffeef0; }
+  </style>
+</head>
+<body>
+  <h1>Sediment — Ingest Audio</h1>
+  <p>Upload an audio file <em>or</em> paste a YouTube URL (one, not both).</p>
+  <form id="form">
+    <fieldset>
+      <label for="file">Audio file</label>
+      <input type="file" id="file" name="file" accept="audio/*" />
+    </fieldset>
+    <fieldset>
+      <label for="youtube_url">YouTube URL</label>
+      <input type="text" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." />
+    </fieldset>
+    <button type="submit">Ingest</button>
+  </form>
+  <div id="result"></div>
+  <script>
+    const form = document.getElementById("form");
+    const result = document.getElementById("result");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      result.className = "";
+      result.textContent = "Working…";
+      const data = new FormData();
+      const file = document.getElementById("file").files[0];
+      const url = document.getElementById("youtube_url").value.trim();
+      if (file) data.append("file", file);
+      if (url) data.append("youtube_url", url);
+      try {
+        const resp = await fetch("/ingest", { method: "POST", body: data });
+        const body = await resp.json();
+        if (resp.ok) {
+          result.className = "ok";
+          result.textContent = "Queued ✓\n" + JSON.stringify(body, null, 2);
+        } else {
+          result.className = "err";
+          result.textContent = "Error: " + (body.detail || resp.status);
+        }
+      } catch (err) {
+        result.className = "err";
+        result.textContent = "Request failed: " + err;
+      }
+    });
+  </script>
+</body>
+</html>
