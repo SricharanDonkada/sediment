@@ -1,3 +1,5 @@
+import pytest
+
 from app import worker
 from sediment_schemas import IngestionMessage, TranscriptionMessage
 
@@ -44,8 +46,6 @@ def test_process_one_cleans_up_temp_file_on_pipeline_error(monkeypatch):
         raise RuntimeError("model exploded")
 
     monkeypatch.setattr(worker.pipeline, "run", boom)
-
-    import pytest
 
     with pytest.raises(RuntimeError):
         worker.process_one(msg.model_dump_json().encode())

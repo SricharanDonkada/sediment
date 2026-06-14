@@ -15,6 +15,8 @@ def process_one(raw: bytes) -> None:
     temp audio file.
     """
     msg = IngestionMessage.model_validate_json(raw)
+    # get_audio owns cleanup if the download fails; audio_path is only bound
+    # on success, so the finally below never unlinks a nonexistent path.
     audio_path = storage.get_audio(msg.bucket, msg.object_key)
     try:
         script = pipeline.run(audio_path)
@@ -43,7 +45,7 @@ def run_forever() -> None:
             process_one(raw)
             queue.ack(raw)
         except Exception:  # noqa: BLE001 — any failure routes to dead-letter
-            log.exception("transcription job failed; dead-lettering")
+            log.exception("transcription job failed; dead-lettering | raw=%r", raw[:200])
             queue.dead_letter(raw)
 
 
