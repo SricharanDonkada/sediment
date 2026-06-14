@@ -54,3 +54,26 @@ def test_empty_diarization_is_single_speaker():
 
 def test_empty_segments_is_empty_string():
     assert to_script([], [SpeakerTurn(0.0, 1.0, "SPEAKER_00")]) == ""
+
+
+def test_mixed_overlap_and_fallback_distinct_speakers():
+    # seg1 overlaps SPEAKER_00; seg2 overlaps nothing and falls back to its
+    # nearest turn SPEAKER_01 (gap 0.5s) over SPEAKER_00 (gap 9s).
+    segments = [
+        Segment(start=0.0, end=1.0, text="hi"),
+        Segment(start=10.0, end=11.0, text="bye"),
+    ]
+    turns = [
+        SpeakerTurn(start=0.0, end=1.0, speaker="SPEAKER_00"),
+        SpeakerTurn(start=9.0, end=9.5, speaker="SPEAKER_01"),
+    ]
+    assert to_script(segments, turns) == "SPEAKER_A: hi\n\nSPEAKER_B: bye\n"
+
+
+def test_empty_text_segments_are_dropped():
+    segments = [
+        Segment(start=0.0, end=1.0, text="real"),
+        Segment(start=1.0, end=2.0, text="   "),
+    ]
+    turns = [SpeakerTurn(start=0.0, end=2.0, speaker="SPEAKER_00")]
+    assert to_script(segments, turns) == "SPEAKER_A: real\n"

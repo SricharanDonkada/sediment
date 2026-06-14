@@ -65,10 +65,17 @@ def to_script(segments: list[Segment], turns: list[SpeakerTurn]) -> str:
         raw = _assign_speaker(seg, turns) or "_SINGLE"
         labeled.append((raw, seg.text.strip()))
 
+    # Drop segments whose text is empty after stripping (e.g. silence).
+    labeled = [(raw, text) for raw, text in labeled if text]
+    if not labeled:
+        return ""
+
     # Remap raw labels to SPEAKER_A, SPEAKER_B, ... by first appearance.
     mapping: dict[str, str] = {}
     for raw, _ in labeled:
         if raw not in mapping:
+            if len(mapping) >= 26:
+                raise ValueError("too many speakers (>26) to label")
             mapping[raw] = f"SPEAKER_{chr(ord('A') + len(mapping))}"
 
     # Join consecutive same-speaker segments into turns.
