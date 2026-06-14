@@ -100,3 +100,48 @@ def test_bad_youtube_url_returns_422(client, monkeypatch):
     monkeypatch.setattr(main.youtube, "download", _boom)
     resp = client.post("/ingest", data={"youtube_url": "https://youtu.be/bad"})
     assert resp.status_code == 422
+
+
+def test_storage_unavailable_returns_503(client, monkeypatch):
+    def _boom(key, data):
+        raise OSError("minio down")
+
+    monkeypatch.setattr(main.storage, "put", _boom)
+    resp = client.post("/ingest", files={"file": ("a.mp3", b"raw", "audio/mpeg")})
+    assert resp.status_code == 503
+
+
+def test_queue_unavailable_returns_503(client, monkeypatch):
+    def _boom(msg):
+        raise RuntimeError("redis down")
+
+    monkeypatch.setattr(main.queue, "enqueue", _boom)
+    resp = client.post("/ingest", files={"file": ("a.mp3", b"raw", "audio/mpeg")})
+    assert resp.status_code == 503
+
+
+def test_youtube_temp_dir_cleaned_up_on_failure(client, monkeypatch, tmp_path):
+    from app.audio import AudioProcessingError
+
+    d = tmp_path / "ytdl-fail"
+    d.mkdir()
+    f = d / "vid.m4a"
+    f.write_bytes(b"audio")
+    monkeypatch.setattr(main.youtube, "download", lambda url: str(f))
+
+    def _boom(src, suffix=""):
+        raise AudioProcessingError("bad")
+
+    monkeypatch.setattr(main.audio, "normalize", _boom)
+    resp = client.post("/ingest", data={"youtube_url": "https://youtu.be/abc"})
+    assert resp.status_code == 422
+    assert not d.exists()  # finally cleaned up the temp dir despite the failure
+
+
+def test_stores_before_enqueues(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(main.storage, "put", lambda key, data: calls.append("put"))
+    monkeypatch.setattr(main.queue, "enqueue", lambda msg: calls.append("enqueue"))
+    resp = client.post("/ingest", files={"file": ("a.mp3", b"raw", "audio/mpeg")})
+    assert resp.status_code == 200
+    assert calls == ["put", "enqueue"]
