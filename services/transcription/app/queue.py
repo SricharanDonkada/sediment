@@ -35,7 +35,13 @@ def ack(raw: bytes) -> None:
 
 
 def dead_letter(raw: bytes) -> None:
-    """Move a failed job from the processing list to the dead-letter list."""
+    """Move a failed job from the processing list to the dead-letter list.
+
+    The two writes are not atomic: push-to-dead happens before
+    remove-from-processing, so a crash between them leaves the job in both
+    lists. This is the safe direction (no loss) — expect possible duplicate
+    entries across the two lists after a mid-failure crash.
+    """
     client = _client()
     client.lpush(settings.transcription_dead_queue, raw)
     client.lrem(settings.transcription_processing_queue, 1, raw)
