@@ -123,7 +123,7 @@ services:
       WHISPER_MODEL: ${WHISPER_MODEL:-large-v3-turbo}
       WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
       WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
-      HF_TOKEN: ${HF_TOKEN:-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}
+      HF_TOKEN: ${HF_TOKEN:-}
       HF_HOME: /models
     volumes:
       - hf-cache:/models
