@@ -10,7 +10,7 @@ browser UI at `/`).
 ## Pipeline
 
 ```
-upload / YouTube URL ──▶ normalize (ffmpeg) ──▶ store .wav ──▶ ingestion_queue
+upload / YouTube URL ──▶ normalize (ffmpeg) ──▶ store .wav ──▶ audio-transcribe
                           16kHz mono WAV         (MinIO `audio`)   (Redis)
 ```
 
@@ -20,7 +20,7 @@ upload / YouTube URL ──▶ normalize (ffmpeg) ──▶ store .wav ──▶
 4. **Store** the WAV as `<uuid>.wav` in the `audio` bucket (created on startup if
    missing). Store happens before enqueue — a stored-but-unqueued object is inert,
    a queued-but-unstored key would crash the transcription worker.
-5. **Enqueue** an `IngestionMessage{object_key, bucket}` onto `ingestion_queue`.
+5. **Enqueue** an `IngestionMessage{object_key, bucket}` onto `audio-transcribe`.
 6. **Return** `{"object_key": "<uuid>.wav", "bucket": "audio"}` to the caller.
 
 ## Modules
@@ -31,7 +31,7 @@ upload / YouTube URL ──▶ normalize (ffmpeg) ──▶ store .wav ──▶
 | [`app/audio.py`](app/audio.py) | ffmpeg wrapper: any format → 16 kHz mono WAV bytes. |
 | [`app/youtube.py`](app/youtube.py) | yt-dlp wrapper: download best audio for a YouTube URL to a temp file. |
 | [`app/storage.py`](app/storage.py) | MinIO: ensure `audio` bucket, upload WAV bytes. |
-| [`app/queue.py`](app/queue.py) | Redis: `LPUSH` an `IngestionMessage` onto `ingestion_queue`. |
+| [`app/queue.py`](app/queue.py) | Redis: `LPUSH` an `IngestionMessage` onto `audio-transcribe`. |
 | [`app/main.py`](app/main.py) | FastAPI app: `GET /` (browser UI), `POST /ingest`. |
 
 ## API

@@ -10,18 +10,18 @@ processes one job at a time, and loops.
 ## Pipeline
 
 ```
-ingestion_queue ──claim──▶ download audio ──▶ transcribe + diarize ──▶ merge ──▶ store .txt ──▶ transcription_queue
+audio-transcribe ──claim──▶ download audio ──▶ transcribe + diarize ──▶ merge ──▶ store .txt ──▶ extract
                   (MinIO `audio`)         (faster-whisper) (pyannote)  (script) (MinIO `transcripts`)
 ```
 
-1. **Claim** a job from `ingestion_queue` (`BRPOPLPUSH` onto a processing list — see [Reliability](#reliability)).
+1. **Claim** a job from `audio-transcribe` (`BRPOPLPUSH` onto a processing list — see [Reliability](#reliability)).
 2. **Download** the 16 kHz mono WAV from the `audio` bucket to a temp file.
 3. **Transcribe** with `faster-whisper` → timestamped text segments.
 4. **Diarize** with `pyannote` → speaker-labeled time spans.
 5. **Merge**: assign each segment the speaker it overlaps most, relabel speakers
    `SPEAKER_A/B/…` by first appearance, join consecutive same-speaker segments.
 6. **Store** the script as `<stem>.txt` in the `transcripts` bucket (creating it if needed).
-7. **Enqueue** a `TranscriptionMessage{object_key, bucket}` onto `transcription_queue`, then **ack**.
+7. **Enqueue** a `TranscriptionMessage{object_key, bucket}` onto `extract`, then **ack**.
 
 ### Stack: `faster-whisper` + `pyannote`, no WhisperX
 
