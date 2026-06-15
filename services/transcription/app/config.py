@@ -19,10 +19,10 @@ class Settings(BaseSettings):
 
     # Redis queues
     redis_url: str = "redis://localhost:6379/0"
-    ingestion_queue: str = "ingestion_queue"
-    transcription_processing_queue: str = "transcription_processing"
-    transcription_queue: str = "transcription_queue"
-    transcription_dead_queue: str = "transcription_dead"
+    ingestion_queue: str = "audio-transcribe"
+    transcription_processing_queue: str = "audio-transcribe:processing"
+    transcription_queue: str = "extract"
+    transcription_dead_queue: str = "audio-transcribe:dead"
 
     # Models
     whisper_model: str = "large-v3-turbo"

@@ -57,19 +57,19 @@ SPEAKER_A: Exact match preferred, open to compatible if it's cheaper.
 
 ## Reliability
 
-`claim` uses `BRPOPLPUSH` to atomically move a job from `ingestion_queue` to
-`transcription_processing` while it is in flight, so a crash mid-job does not lose it.
+`claim` uses `BRPOPLPUSH` to atomically move a job from `audio-transcribe` to
+`audio-transcribe:processing` while it is in flight, so a crash mid-job does not lose it.
 On success the job is `ack`ed (removed from the processing list); on **any** exception
-the worker logs the failure and moves the job to `transcription_dead` for inspection.
+the worker logs the failure and moves the job to `audio-transcribe:dead` for inspection.
 Ordering is store → enqueue → ack, mirroring ingestion's "a stored-but-unqueued object
 is inert" reasoning.
 
 | Redis list | Role |
 |---|---|
-| `ingestion_queue` | Input (produced by ingestion) |
-| `transcription_processing` | In-flight jobs |
-| `transcription_queue` | Output to extraction |
-| `transcription_dead` | Failed jobs, for inspection |
+| `audio-transcribe` | Input (produced by ingestion) |
+| `audio-transcribe:processing` | In-flight jobs |
+| `extract` | Output to extraction |
+| `audio-transcribe:dead` | Failed jobs, for inspection |
 
 ## Configuration
 
@@ -82,8 +82,8 @@ Environment variables (defaults match `docker-compose.yml`):
 | `MINIO_SECURE` | `false` | |
 | `TRANSCRIPTS_BUCKET` | `transcripts` | Created on startup if missing |
 | `REDIS_URL` | `redis://localhost:6379/0` | |
-| `INGESTION_QUEUE` | `ingestion_queue` | |
-| `TRANSCRIPTION_QUEUE` | `transcription_queue` | |
+| `INGESTION_QUEUE` | `audio-transcribe` | |
+| `TRANSCRIPTION_QUEUE` | `extract` | |
 | `WHISPER_MODEL` | `large-v3-turbo` | Cost/accuracy tuning |
 | `WHISPER_DEVICE` | `cpu` | Set `cuda` on a GPU host |
 | `WHISPER_COMPUTE_TYPE` | `int8` | e.g. `float16` on GPU |

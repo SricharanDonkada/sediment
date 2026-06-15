@@ -75,7 +75,7 @@ Environment variables (defaults match `docker-compose.yml`):
 | `MINIO_SECURE` | `false` | |
 | `INGESTION_BUCKET` | `audio` | Created on startup if missing |
 | `REDIS_URL` | `redis://localhost:6379/0` | |
-| `INGESTION_QUEUE` | `ingestion_queue` | Consumed by the transcription worker |
+| `INGESTION_QUEUE` | `audio-transcribe` | Consumed by the transcription worker |
 
 ## Running
 

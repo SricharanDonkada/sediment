@@ -96,7 +96,7 @@ services:
       MINIO_SECURE: "false"
       INGESTION_BUCKET: ${INGESTION_BUCKET:-audio}
       REDIS_URL: redis://redis:6379/0
-      INGESTION_QUEUE: ${INGESTION_QUEUE:-ingestion_queue}
+      INGESTION_QUEUE: ${INGESTION_QUEUE:-audio-transcribe}
     ports:
       - "${INGESTION_PORT:-8000}:8000"
     depends_on:
@@ -118,12 +118,12 @@ services:
       MINIO_SECURE: "false"
       TRANSCRIPTS_BUCKET: ${TRANSCRIPTS_BUCKET:-transcripts}
       REDIS_URL: redis://redis:6379/0
-      INGESTION_QUEUE: ${INGESTION_QUEUE:-ingestion_queue}
-      TRANSCRIPTION_QUEUE: ${TRANSCRIPTION_QUEUE:-transcription_queue}
+      INGESTION_QUEUE: ${INGESTION_QUEUE:-audio-transcribe}
+      TRANSCRIPTION_QUEUE: ${TRANSCRIPTION_QUEUE:-extract}
       WHISPER_MODEL: ${WHISPER_MODEL:-large-v3-turbo}
       WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
       WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
-      HF_TOKEN: ${HF_TOKEN:-}
+      HF_TOKEN: ${HF_TOKEN:-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}
       HF_HOME: /models
     volumes:
       - hf-cache:/models
