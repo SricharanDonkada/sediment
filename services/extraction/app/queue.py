@@ -16,9 +16,9 @@ def claim(timeout: int = 5) -> bytes | None:
     return _client().blmove(
         settings.extraction_queue,
         settings.extraction_processing_queue,
-        "RIGHT",
-        "LEFT",
-        timeout=timeout,
+        timeout,
+        src="RIGHT",
+        dest="LEFT",
     )
 
 
