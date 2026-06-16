@@ -1,0 +1,31 @@
+[project]
+name = "extraction"
+version = "0.1.0"
+description = "Sediment extraction service: dequeue transcripts → Gemini fact extraction → Gemini embeddings → pgvector."
+requires-python = ">=3.12"
+dependencies = [
+    "google-genai>=1.0",
+    "psycopg2-binary>=2.9",
+    "pgvector>=0.3",
+    "minio>=7.2",
+    "redis>=5.0",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "sediment-schemas",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv.sources]
+sediment-schemas = { path = "../../shared/schemas", editable = true }
+
+[tool.pytest.ini_options]
+markers = ["integration: requires live services (redis, postgres, minio); run with compose stack up"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
