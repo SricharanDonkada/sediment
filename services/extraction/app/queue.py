@@ -13,9 +13,11 @@ def _client() -> redis.Redis:
 
 
 def claim(timeout: int = 5) -> bytes | None:
-    return _client().brpoplpush(
+    return _client().blmove(
         settings.extraction_queue,
         settings.extraction_processing_queue,
+        "RIGHT",
+        "LEFT",
         timeout=timeout,
     )
 

@@ -17,6 +17,7 @@ VALID_CATEGORIES = {
     "regulatory_requirement",
     "ordering_pattern",
     "application_condition",
+    "general",
 }
 
 

@@ -26,8 +26,8 @@ def test_entities_defaults_to_empty_list():
     assert f.entities == []
 
 
-def test_valid_categories_contains_all_16():
-    assert len(VALID_CATEGORIES) == 16
+def test_valid_categories_contains_all_17():
+    assert len(VALID_CATEGORIES) == 17
     assert "compatibility" in VALID_CATEGORIES
     assert "application_condition" in VALID_CATEGORIES
 

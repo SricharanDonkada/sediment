@@ -93,5 +93,5 @@ def test_run_returns_empty_list_for_empty_llm_response(monkeypatch):
 
 def test_run_raises_on_invalid_json(monkeypatch):
     monkeypatch.setattr(extract, "_get_client", lambda: _make_client("not json at all"))
-    with pytest.raises(Exception):
+    with pytest.raises(json.JSONDecodeError):
         extract.run("some transcript")
