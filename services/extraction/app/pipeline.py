@@ -16,6 +16,13 @@ def run(transcript_id: str, text: str) -> None:
     for fact in facts:
         embedding_text = embed.build_embedding_text(fact)
         vector = embed.embed_document(embedding_text)
+        log.debug(
+            "fact extracted | category=%s confidence=%.2f entities=%s fact=%s",
+            fact.category,
+            fact.interpretation_confidence,
+            fact.entities,
+            fact.fact,
+        )
         rows.append({
             "transcript_id": transcript_id,
             "fact": fact.fact,
@@ -28,3 +35,4 @@ def run(transcript_id: str, text: str) -> None:
         })
 
     db.store_facts(transcript_id, rows)
+    log.info("stored %d facts | transcript_id=%s", len(rows), transcript_id)
