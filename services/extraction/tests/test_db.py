@@ -31,6 +31,7 @@ def test_store_facts_calls_execute_batch(monkeypatch):
 
     monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
     monkeypatch.setattr(db, "execute_batch", fake_execute_batch)
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
 
     rows = [
         {
@@ -67,6 +68,7 @@ def test_ensure_schema_executes_ddl(monkeypatch):
         def commit(self): pass
 
     monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
     db.ensure_schema()
 
     sql_blob = " ".join(executed)

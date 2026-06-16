@@ -16,7 +16,6 @@ def _get_conn() -> psycopg2.extensions.connection:
     global _conn
     if _conn is None or _conn.closed:
         _conn = psycopg2.connect(settings.postgres_dsn)
-        register_vector(_conn)
     return _conn
 
 
@@ -53,12 +52,15 @@ def ensure_schema() -> None:
             "ON fact_chunks (category)"
         )
     conn.commit()
+    # register_vector after the extension is guaranteed to exist
+    register_vector(conn)
 
 
 def store_facts(transcript_id: str, rows: list[dict]) -> None:
     if not rows:
         return
     conn = _get_conn()
+    register_vector(conn)  # idempotent; re-registers if conn was reset after ensure_schema
     data = [{**row, "entities": Json(row["entities"])} for row in rows]
     with conn.cursor() as cur:
         execute_batch(
