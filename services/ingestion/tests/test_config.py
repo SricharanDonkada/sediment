@@ -9,7 +9,7 @@ def test_defaults_match_compose():
     assert s.minio_secure is False
     assert s.ingestion_bucket == "audio"
     assert s.redis_url == "redis://localhost:6379/0"
-    assert s.ingestion_queue == "ingestion_queue"
+    assert s.ingestion_queue == "audio-transcribe"
 
 
 def test_env_overrides(monkeypatch):

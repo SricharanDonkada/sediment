@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ingestion_bucket: str = "audio"
 
     redis_url: str = "redis://localhost:6379/0"
-    ingestion_queue: str = "ingestion_queue"
+    ingestion_queue: str = "audio-transcribe"
 
 
 settings = Settings()
