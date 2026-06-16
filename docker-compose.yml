@@ -133,6 +133,31 @@ services:
       minio:
         condition: service_healthy
 
+  extraction:
+    build:
+      context: .
+      dockerfile: services/extraction/Dockerfile
+    container_name: sediment-extraction
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sediment}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-sediment-dev}
+      MINIO_SECURE: "false"
+      TRANSCRIPTS_BUCKET: ${TRANSCRIPTS_BUCKET:-transcripts}
+      POSTGRES_DSN: postgresql://${POSTGRES_USER:-sediment}:${POSTGRES_PASSWORD:-sediment}@postgres:5432/${POSTGRES_DB:-sediment}
+      EXTRACTION_QUEUE: ${EXTRACTION_QUEUE:-extract}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_EXTRACTION_MODEL: ${GEMINI_EXTRACTION_MODEL:-gemini-2.5-flash}
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   neo4j-data:
