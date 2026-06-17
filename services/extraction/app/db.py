@@ -62,20 +62,24 @@ def store_facts(transcript_id: str, rows: list[dict]) -> None:
     conn = _get_conn()
     register_vector(conn)  # idempotent; re-registers if conn was reset after ensure_schema
     data = [{**row, "entities": Json(row["entities"])} for row in rows]
-    with conn.cursor() as cur:
-        execute_batch(
-            cur,
-            """
-            INSERT INTO fact_chunks (
-                transcript_id, fact, category, entities, source_quote,
-                interpretation_confidence, embedding_text, embedding
-            ) VALUES (
-                %(transcript_id)s, %(fact)s, %(category)s, %(entities)s,
-                %(source_quote)s, %(interpretation_confidence)s,
-                %(embedding_text)s, %(embedding)s
+    try:
+        with conn.cursor() as cur:
+            execute_batch(
+                cur,
+                """
+                INSERT INTO fact_chunks (
+                    transcript_id, fact, category, entities, source_quote,
+                    interpretation_confidence, embedding_text, embedding
+                ) VALUES (
+                    %(transcript_id)s, %(fact)s, %(category)s, %(entities)s,
+                    %(source_quote)s, %(interpretation_confidence)s,
+                    %(embedding_text)s, %(embedding)s
+                )
+                ON CONFLICT (transcript_id, fact) DO NOTHING
+                """,
+                data,
             )
-            ON CONFLICT (transcript_id, fact) DO NOTHING
-            """,
-            data,
-        )
-    conn.commit()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
