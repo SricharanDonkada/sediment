@@ -312,7 +312,7 @@
         const block = document.createElement('div');
         block.className = 'synthesis-block';
         block.innerHTML =
-          '<div class="synthesis-label">✦ AI Synthesis</div>' + esc(data.synthesis);
+          '<div class="synthesis-label">✦ AI Synthesis</div>' + esc(data.synthesis.trimStart());
         area.appendChild(block);
       }
 
@@ -332,7 +332,7 @@
 
       const catClass = (fact.category || '').replace(/[^a-z_]/g, '');
       const scoreHtml = fact.score != null
-        ? '<span class="score-badge">' + fact.score.toFixed(2) + ' match</span>'
+        ? '<span class="score-badge">' + esc(fact.score.toFixed(2)) + ' match</span>'
         : '';
       const entitiesHtml = fact.entities && fact.entities.length
         ? '<div class="entity-chips">' +
