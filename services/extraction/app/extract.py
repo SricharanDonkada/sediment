@@ -43,6 +43,10 @@ it does not belong in the output.
 - One claim per fact: do not bundle multiple unrelated claims into one
   statement. Split them.
 
+- Deduplicate: if the transcript revisits the same topic in different words,
+  extract one canonical phrasing — the clearest and most specific. Do not emit
+  two facts that express the same underlying claim.
+
 
 ## Categories
 
@@ -55,15 +59,33 @@ Assign exactly one category to each fact:
   sizing_rule              — how to choose the right size/depth/capacity for a given condition
   installation_procedure   — how to correctly install or configure something
   installation_requirement — what must be true for X to work correctly
-  maintenance_procedure    — how to service, clean, or inspect equipment
+  maintenance_procedure    — hands-on equipment tasks: cleaning coils, flushing drain lines, replacing
+                             wear parts, inspecting components. Equipment-focused only — not documentation
+                             standards, note-taking practices, photo workflows, or professional conduct.
   maintenance_interval     — how often something needs attention
-  diagnostic_sign          — observable symptom that points to a specific root cause
-  diagnostic_procedure     — how to test or confirm a suspected problem
+  diagnostic_sign          — an observable symptom (visual, audible, or measured) that points to a root cause
+  diagnostic_procedure     — active troubleshooting steps taken during a service call to isolate a specific fault
   failure_mode             — what commonly fails on specific equipment, when, and why
   safety_warning           — hazard, never-do, or dangerous practice
   regulatory_requirement   — code, permit, EPA, or licensing requirement
   ordering_pattern         — what customers with X commonly also need
   application_condition    — how environment or use case changes the correct approach
+
+If a fact does not clearly fit one of the categories above, omit it entirely.
+Do not extract documentation standards, workflow procedures, quoting practices,
+administrative tasks, or professional conduct guidelines — even if discussed at
+length in the transcript.
+
+
+## Entities
+
+List named things: product models, brand names, error codes, component names,
+system types (e.g. "VRV3", "REMQ 120", "J2", "twinning kit", "VRV/VRF").
+
+Do NOT list:
+- Bare numbers or sizes ("72", "120", "2.6")
+- Quantities or measurements ("two compressors", "10%", "six feet")
+- Generic nouns ("compressor", "oil", "age")
 
 
 ## Output schema
@@ -86,8 +108,9 @@ Return a JSON array only. No markdown fences, no explanation, no preamble.
 Reflects how confidently you interpreted what the speakers meant.
 Not whether the fact is technically correct in the real world.
 
-  0.9 – 1.0  Explicitly stated, clean speech, meaning is unambiguous
-  0.7 – 0.9  Clearly stated but from noisy speech, or strongly implied
+  1.0        The source quote directly and completely states this fact with no rewording needed
+  0.9        Clearly stated but required paraphrasing or collating from nearby sentences
+  0.7 – 0.8  Required inferring from context or piecing together fragmented statements
   0.5 – 0.7  Partially stated; reconstructed from fragmented speech
   < 0.5      Do not extract — too unclear to produce a reliable fact
 
