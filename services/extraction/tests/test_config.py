@@ -19,13 +19,7 @@ def test_default_minio():
 def test_default_gemini_models():
     s = Settings()
     assert s.gemini_extraction_model == "gemini-2.5-flash"
-    assert s.gemini_embedding_model == "text-embedding-004"
-
-
-def test_env_override(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEY", "test-key-123")
-    s = Settings()
-    assert s.gemini_api_key == "test-key-123"
+    assert s.gemini_embedding_model == "gemini-embedding-001"
 
 
 def test_postgres_dsn_default():

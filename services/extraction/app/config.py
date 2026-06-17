@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     postgres_dsn: str = "postgresql://sediment:sediment@localhost:5432/sediment"
 
     # Gemini
-    gemini_api_key: str = ""
     gemini_extraction_model: str = "gemini-2.5-flash"
     gemini_embedding_model: str = "gemini-embedding-001"
 
