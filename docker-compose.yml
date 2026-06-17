@@ -159,6 +159,23 @@ services:
       postgres:
         condition: service_healthy
 
+  knowledge-api:
+    build:
+      context: .
+      dockerfile: services/knowledge-api/Dockerfile
+    container_name: sediment-knowledge-api
+    restart: unless-stopped
+    environment:
+      POSTGRES_DSN: postgresql://${POSTGRES_USER:-sediment}:${POSTGRES_PASSWORD:-sediment}@postgres:5432/${POSTGRES_DB:-sediment}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      GEMINI_SYNTHESIS_MODEL: ${GEMINI_SYNTHESIS_MODEL:-gemini-2.5-flash}
+    ports:
+      - "${KNOWLEDGE_API_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   neo4j-data:
