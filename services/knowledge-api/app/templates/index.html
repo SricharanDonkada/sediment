@@ -207,6 +207,9 @@
         renderCategoryChips(cats);
         renderCategoryRows(cats, data.total_facts);
       } catch (_) {
+        document.getElementById('stat-total').textContent = '—';
+        document.getElementById('stat-transcripts').textContent = '—';
+        document.getElementById('stat-confidence').textContent = '—';
         renderCategoryChips([]);
         renderCategoryRows([], 0);
       }
