@@ -8,8 +8,9 @@ def _vector_retrieve(
     embedding: list[float],
     top_k: int,
     category: str | None,
+    min_score: float,
 ) -> list[dict]:
-    return db.search_facts(embedding, top_k, category)
+    return db.search_facts(embedding, top_k, category, min_score)
 
 
 def _graph_retrieve(embedding: list[float], category: str | None) -> list[dict]:
@@ -41,7 +42,7 @@ def retrieve(
     category: str | None,
 ) -> list[FactResult]:
     embedding = embed.embed_query(query)
-    vector_results = _vector_retrieve(embedding, top_k, category)
+    vector_results = _vector_retrieve(embedding, top_k, category, min_score)
     use_graph = category is None or category in _GRAPH_CATEGORIES
     graph_results = _graph_retrieve(embedding, category) if use_graph else []
     merged = _merge(vector_results, graph_results, top_k, min_score)

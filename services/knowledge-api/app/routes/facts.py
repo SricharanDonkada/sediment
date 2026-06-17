@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, HTTPException, Query
 
 from app import db
@@ -22,8 +24,8 @@ def list_facts(
 
 
 @router.get("/facts/{fact_id}", response_model=FactResult)
-def get_fact(fact_id: str) -> FactResult:
-    row = db.get_fact_by_id(fact_id)
+def get_fact(fact_id: uuid.UUID) -> FactResult:
+    row = db.get_fact_by_id(str(fact_id))
     if row is None:
         raise HTTPException(status_code=404, detail="Fact not found")
     return FactResult(**row)

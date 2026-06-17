@@ -21,7 +21,7 @@ def test_get_stats(client):
 
 
 SAMPLE_FACT = FactResult(
-    id="abc-123",
+    id="00000000-0000-0000-0000-000000000001",
     transcript_id="t1",
     fact="Pre-made condensate traps are too shallow for units over 5 tons.",
     category="sizing_rule",

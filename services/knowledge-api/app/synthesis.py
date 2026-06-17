@@ -33,7 +33,7 @@ def synthesize(query: str, facts: list[FactResult]) -> str | None:
         return None
 
     facts_block = "\n\n".join(
-        f"[{f.id}] {f.fact}\nSource: \"{f.source_quote}\"" for f in facts
+        f"[{f.id}] {f.fact}" + (f'\nSource: "{f.source_quote}"' if f.source_quote else "") for f in facts
     )
     prompt = f"Query: {query}\n\nFacts:\n{facts_block}"
 

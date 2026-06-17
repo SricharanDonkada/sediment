@@ -3,6 +3,7 @@ import logging
 import psycopg2
 import psycopg2.pool
 from pgvector.psycopg2 import register_vector
+from pgvector.psycopg2.vector import Vector
 from psycopg2.extras import RealDictCursor
 
 from app.config import settings
@@ -40,15 +41,18 @@ def _get_conn():
 
 
 def _put_conn(conn) -> None:
-    _pool.putconn(conn)
+    if _pool is not None:
+        _pool.putconn(conn)
 
 
 def search_facts(
     embedding: list[float],
     top_k: int,
     category: str | None,
+    min_score: float = 0.0,
 ) -> list[dict]:
     conn = _get_conn()
+    vec = Vector(embedding)
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
@@ -58,12 +62,16 @@ def search_facts(
                        1 - (embedding <=> %s::vector) AS score
                 FROM fact_chunks
                 WHERE (%s IS NULL OR category = %s)
+                  AND 1 - (embedding <=> %s::vector) >= %s
                 ORDER BY embedding <=> %s::vector
                 LIMIT %s
                 """,
-                (embedding, category, category, embedding, top_k),
+                (vec, category, category, vec, min_score, vec, top_k),
             )
             return [dict(r) for r in cur.fetchall()]
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         _put_conn(conn)
 
@@ -83,6 +91,9 @@ def get_fact_by_id(fact_id: str) -> dict | None:
             )
             row = cur.fetchone()
             return dict(row) if row else None
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         _put_conn(conn)
 
@@ -116,6 +127,9 @@ def list_facts(
             total = int(cur.fetchone()["total"])
 
             return rows, total
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         _put_conn(conn)
 
@@ -151,5 +165,8 @@ def get_stats() -> dict:
                 "avg_confidence": float(row["avg_confidence"]),
                 "facts_by_category": facts_by_category,
             }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         _put_conn(conn)
