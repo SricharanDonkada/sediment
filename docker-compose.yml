@@ -161,7 +161,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ${APPDATA}/gcloud:/root/.config/gcloud:ro
+      - ${GCLOUD_CONFIG_DIR:-~/.config/gcloud}:/root/.config/gcloud:ro
 
   knowledge-api:
     build:
@@ -182,7 +182,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ${APPDATA}/gcloud:/root/.config/gcloud:ro
+      - ${GCLOUD_CONFIG_DIR:-~/.config/gcloud}:/root/.config/gcloud:ro
 
 volumes:
   postgres-data:
