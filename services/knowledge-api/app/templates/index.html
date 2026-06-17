@@ -194,12 +194,13 @@
         if (!resp.ok) throw new Error('stats fetch failed');
         const data = await resp.json();
 
+        const transcriptCount = parseInt(data.transcript_count, 10) || 0;
         document.getElementById('subtitle').textContent =
-          'HVAC knowledge base · ' + data.transcript_count + ' transcripts processed';
+          'HVAC knowledge base · ' + transcriptCount + ' transcripts processed';
         document.getElementById('stat-total').textContent = data.total_facts;
-        document.getElementById('stat-transcripts').textContent = data.transcript_count;
+        document.getElementById('stat-transcripts').textContent = transcriptCount;
         document.getElementById('stat-confidence').textContent =
-          data.avg_confidence.toFixed(2);
+          (data.avg_confidence ?? 0).toFixed(2);
 
         const cats = Object.entries(data.facts_by_category)
           .sort((a, b) => b[1] - a[1]);
@@ -373,7 +374,8 @@
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     document.getElementById('query-input').addEventListener('keydown', e => {
