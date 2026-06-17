@@ -1,5 +1,383 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"/><title>Sediment</title></head>
-<body><h1>Sediment</h1></body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sediment — HVAC Knowledge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; min-height: 100vh; }
+
+    .app { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+    .app-header { margin-bottom: 20px; }
+    .app-header h1 { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+    .app-header p { font-size: 13px; color: #666; margin-top: 3px; }
+
+    .layout { display: flex; gap: 20px; align-items: flex-start; }
+    .main { flex: 3; min-width: 0; }
+    .sidebar { flex: 1; min-width: 180px; }
+
+    /* Search box */
+    .search-box {
+      background: #fff; border-radius: 10px; padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 14px;
+    }
+    .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .search-input {
+      flex: 1; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 7px;
+      font-size: 14px; color: #222; outline: none;
+    }
+    .search-input:focus { border-color: #4a6fa5; }
+    .search-btn {
+      padding: 9px 18px; background: #2b2b2b; color: #fff;
+      border: none; border-radius: 7px; font-size: 14px; cursor: pointer;
+      white-space: nowrap;
+    }
+    .search-btn:disabled { opacity: 0.6; cursor: default; }
+
+    .category-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip {
+      padding: 3px 10px; border-radius: 20px; font-size: 12px; cursor: pointer;
+      border: 1.5px solid #ddd; background: #fff; color: #555;
+    }
+    .chip.active { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+
+    .synth-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; cursor: pointer; }
+
+    /* Error */
+    .error-msg {
+      background: #ffeef0; border: 1px solid #f5c6cb; border-radius: 7px;
+      padding: 10px 14px; font-size: 13px; color: #721c24; margin-bottom: 12px;
+    }
+
+    /* Synthesis */
+    .synthesis-block {
+      background: #fffbf0; border-left: 3px solid #e8a000;
+      border-radius: 0 8px 8px 0; padding: 12px 14px; margin-bottom: 14px;
+      font-size: 13px; line-height: 1.65; color: #333; white-space: pre-line;
+    }
+    .synthesis-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #b07800; margin-bottom: 6px;
+    }
+
+    /* Result header */
+    .result-header { font-size: 12px; color: #888; margin-bottom: 10px; padding-left: 2px; }
+
+    /* Fact cards */
+    .fact-card {
+      background: #fff; border-radius: 9px; padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07); margin-bottom: 10px;
+    }
+    .fact-text { font-size: 14px; color: #1a1a1a; line-height: 1.55; margin-bottom: 8px; }
+    .fact-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cat-badge {
+      padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: #e8f0fe; color: #1a5fb4;
+    }
+    /* Category badge color overrides */
+    .cat-badge.sizing_rule            { background: #fce4ec; color: #b71c1c; }
+    .cat-badge.diagnostic_procedure   { background: #e8f5e9; color: #1b5e20; }
+    .cat-badge.diagnostic_sign        { background: #f1f8e9; color: #33691e; }
+    .cat-badge.safety_warning         { background: #fff3e0; color: #e65100; }
+    .cat-badge.specification          { background: #e3f2fd; color: #0d47a1; }
+    .cat-badge.compatibility          { background: #e0f2f1; color: #004d40; }
+    .cat-badge.incompatibility        { background: #fce4ec; color: #880e4f; }
+    .cat-badge.failure_mode           { background: #fbe9e7; color: #bf360c; }
+    .cat-badge.installation_procedure { background: #f3e5f5; color: #4a148c; }
+    .cat-badge.installation_requirement { background: #e8eaf6; color: #1a237e; }
+    .cat-badge.maintenance_procedure  { background: #e0f7fa; color: #006064; }
+    .cat-badge.ordering_pattern       { background: #fff8e1; color: #ff6f00; }
+    .cat-badge.application_condition  { background: #f5f5f5; color: #424242; }
+
+    .score-badge { font-size: 11px; color: #888; }
+    .entity-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+    .entity-chip {
+      background: #f0f0f0; color: #555; border-radius: 4px;
+      padding: 1px 7px; font-size: 11px;
+    }
+    .source-toggle {
+      display: inline-block; margin-top: 7px; font-size: 11px;
+      color: #4a6fa5; cursor: pointer;
+    }
+    .source-quote {
+      display: none; margin-top: 6px; padding: 8px 10px;
+      background: #f7f7f7; border-radius: 5px;
+      font-size: 12px; color: #555; font-style: italic; line-height: 1.5;
+    }
+    .source-quote.open { display: block; }
+
+    /* Sidebar */
+    .sidebar-card {
+      background: #fff; border-radius: 10px; padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 14px;
+    }
+    .sidebar-heading {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #888; margin-bottom: 12px;
+    }
+    .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .stat-label { font-size: 12px; color: #666; }
+    .stat-value { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+    .stat-value.small { font-size: 14px; }
+
+    .cat-list { display: flex; flex-direction: column; gap: 2px; }
+    .cat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 8px; border-radius: 6px; cursor: pointer;
+    }
+    .cat-row:hover { background: #f5f5f5; }
+    .cat-row.active { background: #2b2b2b; }
+    .cat-row.active .cat-name,
+    .cat-row.active .cat-count { color: #fff; }
+    .cat-name { font-size: 12px; color: #444; }
+    .cat-count { font-size: 12px; color: #999; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="app-header">
+      <h1>⚗ Sediment</h1>
+      <p id="subtitle">HVAC knowledge base</p>
+    </div>
+    <div class="layout">
+
+      <div class="main">
+        <div class="search-box">
+          <div class="search-row">
+            <input id="query-input" class="search-input" type="text"
+                   placeholder="Ask anything about HVAC…" />
+            <button id="search-btn" class="search-btn" onclick="handleSearch()">Search</button>
+          </div>
+          <div id="category-chips" class="category-chips"></div>
+          <label class="synth-toggle">
+            <input id="synth-toggle" type="checkbox" checked />
+            Include AI synthesis
+          </label>
+        </div>
+        <div id="error-msg" class="error-msg" style="display:none"></div>
+        <div id="results-area"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="sidebar-card">
+          <div class="sidebar-heading">Knowledge Base</div>
+          <div class="stat-row">
+            <span class="stat-label">Total facts</span>
+            <span id="stat-total" class="stat-value">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Transcripts</span>
+            <span id="stat-transcripts" class="stat-value small">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Avg confidence</span>
+            <span id="stat-confidence" class="stat-value small">—</span>
+          </div>
+        </div>
+        <div class="sidebar-card">
+          <div class="sidebar-heading">Filter by category</div>
+          <div id="cat-list" class="cat-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let activeCategory = null;
+
+    async function loadStats() {
+      try {
+        const resp = await fetch('/stats');
+        if (!resp.ok) throw new Error('stats fetch failed');
+        const data = await resp.json();
+
+        document.getElementById('subtitle').textContent =
+          'HVAC knowledge base · ' + data.transcript_count + ' transcripts processed';
+        document.getElementById('stat-total').textContent = data.total_facts;
+        document.getElementById('stat-transcripts').textContent = data.transcript_count;
+        document.getElementById('stat-confidence').textContent =
+          data.avg_confidence.toFixed(2);
+
+        const cats = Object.entries(data.facts_by_category)
+          .sort((a, b) => b[1] - a[1]);
+
+        renderCategoryChips(cats);
+        renderCategoryRows(cats, data.total_facts);
+      } catch (_) {
+        renderCategoryChips([]);
+        renderCategoryRows([], 0);
+      }
+    }
+
+    function renderCategoryChips(cats) {
+      const container = document.getElementById('category-chips');
+      container.innerHTML = '';
+
+      const allChip = makeEl('span', 'chip active', 'All');
+      allChip.onclick = () => selectCategory(null);
+      container.appendChild(allChip);
+
+      cats.forEach(([cat]) => {
+        const chip = makeEl('span', 'chip', cat);
+        chip.dataset.cat = cat;
+        chip.onclick = () => selectCategory(cat);
+        container.appendChild(chip);
+      });
+    }
+
+    function renderCategoryRows(cats, total) {
+      const list = document.getElementById('cat-list');
+      list.innerHTML = '';
+
+      const allRow = makeRow('', 'All categories', total, true);
+      allRow.onclick = () => selectCategory(null);
+      list.appendChild(allRow);
+
+      cats.forEach(([cat, count]) => {
+        const row = makeRow(cat, cat, count, false);
+        row.onclick = () => selectCategory(cat);
+        list.appendChild(row);
+      });
+    }
+
+    function makeRow(dataCat, label, count, active) {
+      const row = document.createElement('div');
+      row.className = 'cat-row' + (active ? ' active' : '');
+      row.dataset.cat = dataCat;
+      row.innerHTML =
+        '<span class="cat-name">' + esc(label) + '</span>' +
+        '<span class="cat-count">' + count + '</span>';
+      return row;
+    }
+
+    function selectCategory(cat) {
+      activeCategory = cat;
+
+      document.querySelectorAll('#category-chips .chip').forEach(chip => {
+        chip.classList.toggle('active',
+          cat === null ? chip.textContent === 'All' : chip.dataset.cat === cat);
+      });
+
+      document.querySelectorAll('#cat-list .cat-row').forEach(row => {
+        row.classList.toggle('active',
+          cat === null ? row.dataset.cat === '' : row.dataset.cat === cat);
+      });
+    }
+
+    async function handleSearch() {
+      const query = document.getElementById('query-input').value.trim();
+      if (!query) return;
+
+      const btn = document.getElementById('search-btn');
+      btn.textContent = 'Searching…';
+      btn.disabled = true;
+      document.getElementById('error-msg').style.display = 'none';
+      document.getElementById('results-area').innerHTML = '';
+
+      try {
+        const resp = await fetch('/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query,
+            top_k: 10,
+            min_score: 0.5,
+            category: activeCategory,
+            synthesize: document.getElementById('synth-toggle').checked,
+          }),
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        renderResults(await resp.json());
+      } catch (_) {
+        const el = document.getElementById('error-msg');
+        el.textContent = 'Search failed. Is the knowledge-api running?';
+        el.style.display = 'block';
+      } finally {
+        btn.textContent = 'Search';
+        btn.disabled = false;
+      }
+    }
+
+    function renderResults(data) {
+      const area = document.getElementById('results-area');
+      area.innerHTML = '';
+
+      if (data.synthesis) {
+        const block = document.createElement('div');
+        block.className = 'synthesis-block';
+        block.innerHTML =
+          '<div class="synthesis-label">✦ AI Synthesis</div>' + esc(data.synthesis);
+        area.appendChild(block);
+      }
+
+      const header = makeEl('div', 'result-header',
+        data.facts.length === 0
+          ? 'No facts found. Try a broader query or remove the category filter.'
+          : data.facts.length + ' fact' + (data.facts.length === 1 ? '' : 's') +
+            ' · filtered by relevance');
+      area.appendChild(header);
+
+      data.facts.forEach(fact => area.appendChild(buildFactCard(fact)));
+    }
+
+    function buildFactCard(fact) {
+      const card = document.createElement('div');
+      card.className = 'fact-card';
+
+      const catClass = (fact.category || '').replace(/[^a-z_]/g, '');
+      const scoreHtml = fact.score != null
+        ? '<span class="score-badge">' + fact.score.toFixed(2) + ' match</span>'
+        : '';
+      const entitiesHtml = fact.entities && fact.entities.length
+        ? '<div class="entity-chips">' +
+          fact.entities.map(e => '<span class="entity-chip">' + esc(e) + '</span>').join('') +
+          '</div>'
+        : '';
+      const quoteHtml = fact.source_quote
+        ? '<span class="source-toggle" onclick="toggleQuote(this)">▶ Source quote</span>' +
+          '<div class="source-quote">' + esc(fact.source_quote) + '</div>'
+        : '';
+
+      card.innerHTML =
+        '<div class="fact-text">' + esc(fact.fact) + '</div>' +
+        '<div class="fact-meta">' +
+          '<span class="cat-badge ' + catClass + '">' + esc(fact.category) + '</span>' +
+          scoreHtml +
+        '</div>' +
+        entitiesHtml +
+        quoteHtml;
+
+      return card;
+    }
+
+    function toggleQuote(el) {
+      const open = el.nextElementSibling.classList.toggle('open');
+      el.textContent = open ? '▼ Hide source' : '▶ Source quote';
+    }
+
+    function makeEl(tag, className, text) {
+      const el = document.createElement(tag);
+      el.className = className;
+      el.textContent = text;
+      return el;
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('query-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleSearch();
+    });
+
+    loadStats();
+  </script>
+</body>
 </html>
