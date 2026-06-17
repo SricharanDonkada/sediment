@@ -148,9 +148,11 @@ services:
       TRANSCRIPTS_BUCKET: ${TRANSCRIPTS_BUCKET:-transcripts}
       POSTGRES_DSN: postgresql://${POSTGRES_USER:-sediment}:${POSTGRES_PASSWORD:-sediment}@postgres:5432/${POSTGRES_DB:-sediment}
       EXTRACTION_QUEUE: ${EXTRACTION_QUEUE:-extract}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_EXTRACTION_MODEL: ${GEMINI_EXTRACTION_MODEL:-gemini-2.5-flash}
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-asia-south1}
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
     depends_on:
       redis:
         condition: service_healthy
@@ -158,6 +160,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    volumes:
+      - ${APPDATA}/gcloud:/root/.config/gcloud:ro
 
   knowledge-api:
     build:
@@ -167,14 +171,18 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DSN: postgresql://${POSTGRES_USER:-sediment}:${POSTGRES_PASSWORD:-sediment}@postgres:5432/${POSTGRES_DB:-sediment}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
       GEMINI_SYNTHESIS_MODEL: ${GEMINI_SYNTHESIS_MODEL:-gemini-2.5-flash}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-asia-south1}
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
     ports:
       - "${KNOWLEDGE_API_PORT:-8001}:8000"
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ${APPDATA}/gcloud:/root/.config/gcloud:ro
 
 volumes:
   postgres-data:
