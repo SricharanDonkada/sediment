@@ -21,7 +21,7 @@ def init_pool() -> None:
     )
     conn = _pool.getconn()
     try:
-        register_vector(conn)
+        register_vector(conn, globally=True)
     finally:
         _pool.putconn(conn)
 
@@ -34,6 +34,8 @@ def close_pool() -> None:
 
 
 def _get_conn():
+    if _pool is None:
+        raise RuntimeError("DB pool is not initialized — call init_pool() first")
     return _pool.getconn()
 
 

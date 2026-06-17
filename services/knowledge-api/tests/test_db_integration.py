@@ -39,3 +39,10 @@ def test_get_fact_by_id_returns_none_for_unknown():
 def test_list_facts_category_filter():
     rows, total = db.list_facts(page=1, limit=10, category="sizing_rule")
     assert all(r["category"] == "sizing_rule" for r in rows)
+
+
+@pytest.mark.integration
+def test_search_facts_returns_list():
+    embedding = [0.0] * 768
+    results = db.search_facts(embedding, top_k=5, category=None)
+    assert isinstance(results, list)
