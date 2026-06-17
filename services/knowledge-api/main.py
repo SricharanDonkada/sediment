@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app import db
-from app.routes import stats
+from app.routes import facts, stats
 
 
 @asynccontextmanager
@@ -16,3 +16,4 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Sediment Knowledge API", lifespan=lifespan)
 
 app.include_router(stats.router)
+app.include_router(facts.router)
