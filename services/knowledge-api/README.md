@@ -47,7 +47,8 @@ inside `_graph_retrieve()` in `app/retrieve.py`.
 | Variable | Default | Notes |
 |---|---|---|
 | `POSTGRES_DSN` | `postgresql://sediment:sediment@localhost:5432/sediment` | |
-| `GEMINI_API_KEY` | _(empty)_ | **Required** |
+| `GOOGLE_CLOUD_PROJECT` | _(required)_ | GCP project with Vertex AI API enabled |
+| `GOOGLE_CLOUD_LOCATION` | `asia-south1` | Vertex AI region |
 | `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | Must match extraction service |
 | `GEMINI_SYNTHESIS_MODEL` | `gemini-2.5-flash` | |
 | `DB_POOL_MIN` | `1` | |

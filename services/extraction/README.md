@@ -95,12 +95,13 @@ Environment variables (defaults match `docker-compose.yml`):
 | `MINIO_SECURE` | `false` | |
 | `TRANSCRIPTS_BUCKET` | `transcripts` | |
 | `POSTGRES_DSN` | `postgresql://sediment:sediment@localhost:5432/sediment` | |
-| `GEMINI_API_KEY` | _(empty)_ | **Required** — see below |
 | `GEMINI_EXTRACTION_MODEL` | `gemini-2.5-flash` | |
 | `GEMINI_EMBEDDING_MODEL` | `text-embedding-004` | |
+| `GOOGLE_CLOUD_PROJECT` | _(required)_ | GCP project with Vertex AI API enabled |
+| `GOOGLE_CLOUD_LOCATION` | `asia-south1` | Vertex AI region |
 
-> **`GEMINI_API_KEY` is required.** Set it in your environment or `.env` before starting
-> the service. The worker will fail on first job if the key is missing or invalid.
+> **Vertex AI credentials are required.** Run `gcloud auth application-default login`
+> before starting the service, and set `GOOGLE_CLOUD_PROJECT` in your `.env`.
 
 ## Running
 
