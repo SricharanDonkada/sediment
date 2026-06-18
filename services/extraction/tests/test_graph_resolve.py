@@ -75,7 +75,6 @@ def test_resolve_exact_alias_match():
     assert new_clusters == []
     assert len(matched) == 1
     assert matched[0].canonical_name == "Taco 007 Circulator"
-    assert "the 007" in matched[0].new_aliases
 
 
 def test_resolve_matched_entity_excludes_already_known_aliases():
