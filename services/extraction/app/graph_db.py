@@ -137,9 +137,11 @@ def write_graph_results(
                       r.created_at = datetime(),
                       r.updated_at = datetime()
                     ON MATCH SET
-                      r.confidence = (r.confidence * r.frequency + 0.95) / (r.frequency + 1),
-                      r.frequency  = r.frequency + 1,
-                      r.source_ids = r.source_ids + [$transcript_id],
+                      r.confidence = CASE WHEN NOT $transcript_id IN r.source_ids
+                                          THEN (r.confidence * r.frequency + 0.95) / (r.frequency + 1)
+                                          ELSE r.confidence END,
+                      r.frequency  = CASE WHEN NOT $transcript_id IN r.source_ids THEN r.frequency + 1 ELSE r.frequency END,
+                      r.source_ids = CASE WHEN NOT $transcript_id IN r.source_ids THEN r.source_ids + [$transcript_id] ELSE r.source_ids END,
                       r.updated_at = datetime()
                     """,
                     brand_name=entity.brand,
@@ -172,9 +174,11 @@ def _upsert_edge(session, rel: ExtractedRelationship, rel_type_str: str, transcr
       r.created_at            = datetime(),
       r.updated_at            = datetime()
     ON MATCH SET
-      r.confidence  = (r.confidence * r.frequency + $confidence) / (r.frequency + 1),
-      r.frequency   = r.frequency + 1,
-      r.source_ids  = r.source_ids + [$transcript_id],
+      r.confidence  = CASE WHEN NOT $transcript_id IN r.source_ids
+                           THEN (r.confidence * r.frequency + $confidence) / (r.frequency + 1)
+                           ELSE r.confidence END,
+      r.frequency   = CASE WHEN NOT $transcript_id IN r.source_ids THEN r.frequency + 1 ELSE r.frequency END,
+      r.source_ids  = CASE WHEN NOT $transcript_id IN r.source_ids THEN r.source_ids + [$transcript_id] ELSE r.source_ids END,
       r.evidence    = $evidence,
       r.updated_at  = datetime()
     """
