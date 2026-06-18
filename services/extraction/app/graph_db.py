@@ -108,8 +108,7 @@ def write_graph_results(
                   e.created_at  = datetime(),
                   e.updated_at  = datetime()
                 ON MATCH SET
-                  e.updated_at = datetime(),
-                  e.aliases    = $aliases
+                  e.updated_at = datetime()
                 """,
                 canonical_name=entity.canonical_name,
                 type=entity.entity_type.value,
