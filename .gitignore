@@ -1,5 +1,6 @@
-# Superpowers design specs and implementation plans — local, not committed
+# Superpowers design specs, implementation plans, and brainstorm sessions — local, not committed
 docs/superpowers/
+.superpowers/
 
 # Secrets
 .env
