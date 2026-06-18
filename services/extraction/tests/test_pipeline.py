@@ -28,6 +28,7 @@ def test_pipeline_run_calls_embed_and_store(monkeypatch):
         calls["rows"] = rows
 
     monkeypatch.setattr(pipeline.db, "store_facts", fake_store_facts)
+    monkeypatch.setattr(pipeline.graph_pipeline, "run", lambda *a: None)
 
     pipeline.run("t1.txt", "SPEAKER_A: speaker said this")
 
@@ -69,6 +70,7 @@ def test_pipeline_run_builds_correct_row_shape(monkeypatch):
     monkeypatch.setattr(pipeline.embed, "embed_document", lambda text: [0.5] * 768)
     monkeypatch.setattr(pipeline.db, "store_facts",
                         lambda transcript_id, rows: captured.update({"rows": rows}))
+    monkeypatch.setattr(pipeline.graph_pipeline, "run", lambda *a: None)
 
     pipeline.run("transcript.txt", "SPEAKER_A: rust at the bottom")
 
@@ -80,3 +82,36 @@ def test_pipeline_run_builds_correct_row_shape(monkeypatch):
     }
     assert row["interpretation_confidence"] == pytest.approx(0.85)
     assert len(row["embedding"]) == 768
+
+
+def test_pipeline_run_calls_graph_pipeline_after_store(monkeypatch):
+    fact = _make_fact()
+    graph_called = {}
+
+    monkeypatch.setattr(pipeline.extract, "run", lambda text: [fact])
+    monkeypatch.setattr(pipeline.embed, "build_embedding_text", lambda f: "text")
+    monkeypatch.setattr(pipeline.embed, "embed_document", lambda text: [0.1] * 768)
+    monkeypatch.setattr(pipeline.db, "store_facts", lambda tid, rows: None)
+
+    def fake_graph_run(transcript_id, transcript, facts):
+        graph_called["transcript_id"] = transcript_id
+        graph_called["facts"] = facts
+
+    monkeypatch.setattr(pipeline.graph_pipeline, "run", fake_graph_run)
+
+    pipeline.run("t1.txt", "SPEAKER_A: speaker said this")
+
+    assert graph_called["transcript_id"] == "t1.txt"
+    assert graph_called["facts"] == [fact]
+
+
+def test_pipeline_run_does_not_call_graph_when_no_facts(monkeypatch):
+    graph_called = []
+
+    monkeypatch.setattr(pipeline.extract, "run", lambda text: [])
+    monkeypatch.setattr(pipeline.graph_pipeline, "run",
+                        lambda *a: graph_called.append(1))
+
+    pipeline.run("t1.txt", "empty transcript")
+
+    assert graph_called == []
