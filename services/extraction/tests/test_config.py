@@ -26,3 +26,10 @@ def test_postgres_dsn_default():
     s = Settings()
     assert "localhost" in s.postgres_dsn
     assert "5432" in s.postgres_dsn
+
+
+def test_neo4j_defaults():
+    s = Settings()
+    assert s.neo4j_uri == "bolt://localhost:7687"
+    assert s.neo4j_user == "neo4j"
+    assert s.neo4j_password == "sediment-dev"

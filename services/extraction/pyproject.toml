@@ -12,6 +12,8 @@ dependencies = [
     "pydantic>=2.6",
     "pydantic-settings>=2.2",
     "sediment-schemas",
+    "neo4j>=5.0",
+    "numpy>=1.26",
 ]
 
 [dependency-groups]
