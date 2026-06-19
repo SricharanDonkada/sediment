@@ -83,7 +83,8 @@ def get_fact_by_id(fact_id: str) -> dict | None:
             cur.execute(
                 """
                 SELECT id::text, transcript_id, fact, category, entities,
-                       source_quote, interpretation_confidence, created_at
+                       source_quote, interpretation_confidence, created_at,
+                       'vector' AS source
                 FROM fact_chunks
                 WHERE id = %s::uuid
                 """,
@@ -110,7 +111,8 @@ def list_facts(
             cur.execute(
                 """
                 SELECT id::text, transcript_id, fact, category, entities,
-                       source_quote, interpretation_confidence, created_at
+                       source_quote, interpretation_confidence, created_at,
+                       'vector' AS source
                 FROM fact_chunks
                 WHERE (%s IS NULL OR category = %s)
                 ORDER BY created_at DESC
@@ -168,5 +170,55 @@ def get_stats() -> dict:
     except Exception:
         conn.rollback()
         raise
+    finally:
+        _put_conn(conn)
+
+
+def find_entity_exact(mention: str) -> dict | None:
+    conn = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT canonical_name, aliases FROM entities WHERE canonical_name = %s",
+                (mention,),
+            )
+            row = cur.fetchone()
+            return {"canonical_name": row[0], "aliases": row[1]} if row else None
+    finally:
+        _put_conn(conn)
+
+
+def find_entity_by_alias(mention: str) -> dict | None:
+    conn = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT canonical_name, aliases FROM entities WHERE %s = ANY(aliases)",
+                (mention,),
+            )
+            row = cur.fetchone()
+            return {"canonical_name": row[0], "aliases": row[1]} if row else None
+    finally:
+        _put_conn(conn)
+
+
+def find_closest_entity(embedding: list[float], threshold: float) -> dict | None:
+    conn = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT canonical_name, aliases,
+                       1 - (embedding <=> %s::vector) AS sim
+                FROM entities
+                ORDER BY embedding <=> %s::vector
+                LIMIT 1
+                """,
+                (embedding, embedding),
+            )
+            row = cur.fetchone()
+            if row is None or row[2] < threshold:
+                return None
+            return {"canonical_name": row[0], "aliases": row[1]}
     finally:
         _put_conn(conn)
