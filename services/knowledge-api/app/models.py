@@ -1,17 +1,23 @@
 from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel
 
 
 class FactResult(BaseModel):
     id: str
-    transcript_id: str
-    fact: str
+    transcript_id: str | None
+    fact: str | None
     category: str
     entities: list[str]
     source_quote: str | None
     interpretation_confidence: float
-    created_at: datetime
+    created_at: datetime | None
     score: float | None = None
+    source: Literal["vector", "graph"]
+    subject: str | None = None
+    predicate: str | None = None
+    object: str | None = None
 
 
 class QueryRequest(BaseModel):

@@ -16,6 +16,7 @@ SAMPLE_ROW = {
     "interpretation_confidence": 0.9,
     "created_at": datetime(2026, 6, 17, tzinfo=timezone.utc),
     "score": 0.87,
+    "source": "vector",
 }
 
 
