@@ -104,6 +104,7 @@ def test_run_pass2_receives_both_new_and_matched_canonical_names(monkeypatch):
         [MatchedEntity(canonical_name="Existing Entity", new_aliases=[])],
     ))
     monkeypatch.setattr(graph_pipeline.graph_db, "update_entity_aliases", lambda u: None)
+    monkeypatch.setattr(graph_pipeline.db, "update_entity_aliases", lambda u: None)
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_mini_pass",
                         lambda c: [_make_entity_response("New Entity")])
     monkeypatch.setattr(graph_pipeline.embed, "embed_entity", lambda t: [0.1] * 768)
