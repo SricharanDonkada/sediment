@@ -157,3 +157,23 @@ def store_facts(transcript_id: str, rows: list[dict]) -> None:
     except Exception:
         conn.rollback()
         raise
+
+
+def find_closest_entity(embedding: list[float], threshold: float) -> dict | None:
+    conn = _get_conn()
+    register_vector(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT canonical_name, aliases,
+                   1 - (embedding <=> %s::vector) AS sim
+            FROM entities
+            ORDER BY embedding <=> %s::vector
+            LIMIT 1
+            """,
+            (embedding, embedding),
+        )
+        row = cur.fetchone()
+        if row is None or row[2] < threshold:
+            return None
+        return {"canonical_name": row[0], "aliases": row[1]}

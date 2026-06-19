@@ -179,6 +179,54 @@ def test_update_entity_aliases_executes_update(monkeypatch):
     assert executed[0] == (["TXV", "the TXV", "txv valve"], "TXV")
 
 
+def test_find_closest_entity_returns_none_when_table_empty(monkeypatch):
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params): pass
+        def fetchone(self): return None
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
+    result = db.find_closest_entity([0.1] * 768, threshold=0.92)
+    assert result is None
+
+
+def test_find_closest_entity_returns_none_below_threshold(monkeypatch):
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params): pass
+        def fetchone(self): return ("Taco 007", ["taco 007"], 0.85)
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
+    result = db.find_closest_entity([0.1] * 768, threshold=0.92)
+    assert result is None
+
+
+def test_find_closest_entity_returns_match_above_threshold(monkeypatch):
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params): pass
+        def fetchone(self): return ("Taco 007", ["taco 007", "the pump"], 0.97)
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
+    result = db.find_closest_entity([0.1] * 768, threshold=0.92)
+    assert result == {"canonical_name": "Taco 007", "aliases": ["taco 007", "the pump"]}
+
+
 # ── Integration tests (require live Postgres) ─────────────────────────────────
 
 @pytest.mark.integration
