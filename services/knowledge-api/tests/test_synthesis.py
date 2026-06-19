@@ -50,3 +50,36 @@ def test_synthesize_includes_fact_id_and_text_in_prompt(monkeypatch):
     prompt = call_kwargs.get("contents", "")
     assert SAMPLE_FACT.id in prompt
     assert SAMPLE_FACT.fact in prompt
+
+
+def test_synthesize_formats_graph_result_with_subject_predicate_object(monkeypatch):
+    from datetime import datetime, timezone
+    graph_fact = FactResult(
+        id="g1",
+        transcript_id=None,
+        fact=None,
+        category="compatible_with",
+        entities=["TXV", "R-410A"],
+        source_quote="works fine together",
+        interpretation_confidence=0.9,
+        created_at=None,
+        score=0.9,
+        source="graph",
+        subject="TXV",
+        predicate="compatible_with",
+        object="R-410A",
+    )
+
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(text="answer")
+    monkeypatch.setattr("app.synthesis._client", mock_client)
+
+    from app.synthesis import synthesize
+    synthesize("what works with TXV?", [graph_fact])
+
+    call_kwargs = mock_client.models.generate_content.call_args.kwargs
+    prompt = call_kwargs.get("contents", "")
+    assert "g1" in prompt
+    assert "(graph)" in prompt
+    assert "TXV compatible with R-410A" in prompt
+    assert "works fine together" in prompt
