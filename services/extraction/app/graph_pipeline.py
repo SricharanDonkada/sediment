@@ -25,12 +25,13 @@ def run(transcript_id: str, transcript: str, facts: list[ExtractedFact]) -> None
             alias_updates[m.canonical_name] = merged
     if alias_updates:
         graph_db.update_entity_aliases(alias_updates)
+        db.update_entity_aliases(alias_updates)
 
     new_entity_responses = graph_extract.run_mini_pass(new_clusters) if new_clusters else []
     new_entities: list[CanonicalizedEntity] = []
     for resp in new_entity_responses:
         entity = CanonicalizedEntity(**resp.model_dump())
-        entity.embedding = embed.embed_document(entity.canonical_name)
+        entity.embedding = embed.embed_entity(entity.canonical_name)
         new_entities.append(entity)
 
     existing_names = {m.canonical_name for m in matched_entities}
@@ -58,6 +59,7 @@ def run(transcript_id: str, transcript: str, facts: list[ExtractedFact]) -> None
         for rel in skipped:
             log.debug("skipped relationship: %s", rel.model_dump())
 
+    db.write_entities(new_entities)
     graph_db.write_graph_results(transcript_id, new_entities, validated)
     log.info(
         "graph pipeline complete | new_entities=%d matched=%d relationships=%d | transcript_id=%s",

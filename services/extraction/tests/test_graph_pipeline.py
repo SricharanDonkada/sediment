@@ -48,16 +48,18 @@ def test_run_matched_entities_do_not_go_through_mini_pass(monkeypatch):
     mini_pass_called = []
 
     monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [
-        {"canonical_name": "Existing TXV", "aliases": [], "embedding": []}
+        {"canonical_name": "Existing TXV", "aliases": []}
     ])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
         [],
         [MatchedEntity(canonical_name="Existing TXV", new_aliases=["the TXV"])],
     ))
     monkeypatch.setattr(graph_pipeline.graph_db, "update_entity_aliases", lambda u: None)
+    monkeypatch.setattr(graph_pipeline.db, "update_entity_aliases", lambda u: None)
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_mini_pass",
                         lambda clusters: mini_pass_called.append(clusters) or [])
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_pass2", lambda t, n: [])
+    monkeypatch.setattr(graph_pipeline.db, "write_entities", lambda e: None)
     monkeypatch.setattr(graph_pipeline.graph_db, "write_graph_results", lambda *a: None)
 
     graph_pipeline.run("t1.txt", "transcript", [_make_fact(["TXV"])])
@@ -66,31 +68,36 @@ def test_run_matched_entities_do_not_go_through_mini_pass(monkeypatch):
 
 
 def test_run_update_entity_aliases_called_only_when_new_aliases(monkeypatch):
-    alias_calls = []
+    alias_calls_neo4j = []
+    alias_calls_pg = []
 
     monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [
-        {"canonical_name": "TXV", "aliases": ["the TXV"], "embedding": []}
+        {"canonical_name": "TXV", "aliases": ["the TXV"]}
     ])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
         [],
-        [MatchedEntity(canonical_name="TXV", new_aliases=[])],  # no new aliases
+        [MatchedEntity(canonical_name="TXV", new_aliases=[])],
     ))
     monkeypatch.setattr(graph_pipeline.graph_db, "update_entity_aliases",
-                        lambda u: alias_calls.append(u))
+                        lambda u: alias_calls_neo4j.append(u))
+    monkeypatch.setattr(graph_pipeline.db, "update_entity_aliases",
+                        lambda u: alias_calls_pg.append(u))
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_mini_pass", lambda c: [])
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_pass2", lambda t, n: [])
+    monkeypatch.setattr(graph_pipeline.db, "write_entities", lambda e: None)
     monkeypatch.setattr(graph_pipeline.graph_db, "write_graph_results", lambda *a: None)
 
     graph_pipeline.run("t1.txt", "transcript", [_make_fact(["TXV"])])
 
-    assert alias_calls == []
+    assert alias_calls_neo4j == []
+    assert alias_calls_pg == []
 
 
 def test_run_pass2_receives_both_new_and_matched_canonical_names(monkeypatch):
     pass2_names = []
 
     monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [
-        {"canonical_name": "Existing Entity", "aliases": [], "embedding": []}
+        {"canonical_name": "Existing Entity", "aliases": []}
     ])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
         [_make_cluster("New Entity")],
@@ -99,19 +106,43 @@ def test_run_pass2_receives_both_new_and_matched_canonical_names(monkeypatch):
     monkeypatch.setattr(graph_pipeline.graph_db, "update_entity_aliases", lambda u: None)
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_mini_pass",
                         lambda c: [_make_entity_response("New Entity")])
-    monkeypatch.setattr(graph_pipeline.embed, "embed_document", lambda t: [0.1] * 768)
+    monkeypatch.setattr(graph_pipeline.embed, "embed_entity", lambda t: [0.1] * 768)
 
     def capture_pass2(transcript, names):
         pass2_names.extend(names)
         return []
 
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_pass2", capture_pass2)
+    monkeypatch.setattr(graph_pipeline.db, "write_entities", lambda e: None)
     monkeypatch.setattr(graph_pipeline.graph_db, "write_graph_results", lambda *a: None)
 
     graph_pipeline.run("t1.txt", "transcript", [_make_fact(["New Entity", "Existing Entity"])])
 
     assert "New Entity" in pass2_names
     assert "Existing Entity" in pass2_names
+
+
+def test_run_writes_new_entities_to_postgres(monkeypatch):
+    written_pg = {}
+
+    monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [])
+    monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
+        [_make_cluster("New Part")],
+        [],
+    ))
+    monkeypatch.setattr(graph_pipeline.graph_extract, "run_mini_pass",
+                        lambda c: [_make_entity_response("New Part")])
+    monkeypatch.setattr(graph_pipeline.embed, "embed_entity", lambda t: [0.1] * 768)
+    monkeypatch.setattr(graph_pipeline.graph_extract, "run_pass2", lambda t, n: [])
+    monkeypatch.setattr(graph_pipeline.db, "write_entities",
+                        lambda entities: written_pg.update({"entities": entities}))
+    monkeypatch.setattr(graph_pipeline.graph_db, "write_graph_results", lambda *a: None)
+
+    graph_pipeline.run("t1.txt", "transcript", [_make_fact(["New Part"])])
+
+    assert "entities" in written_pg
+    assert len(written_pg["entities"]) == 1
+    assert written_pg["entities"][0].canonical_name == "New Part"
 
 
 def test_run_invalid_relationships_skipped_and_logged(monkeypatch, caplog):
@@ -122,7 +153,7 @@ def test_run_invalid_relationships_skipped_and_logged(monkeypatch, caplog):
     ))
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_mini_pass",
                         lambda c: [_make_entity_response("Part A")])
-    monkeypatch.setattr(graph_pipeline.embed, "embed_document", lambda t: [0.1] * 768)
+    monkeypatch.setattr(graph_pipeline.embed, "embed_entity", lambda t: [0.1] * 768)
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_pass2",
                         lambda t, n: [
                             ExtractedRelationship(
@@ -134,6 +165,7 @@ def test_run_invalid_relationships_skipped_and_logged(monkeypatch, caplog):
                         ])
 
     written = {}
+    monkeypatch.setattr(graph_pipeline.db, "write_entities", lambda e: None)
     monkeypatch.setattr(graph_pipeline.graph_db, "write_graph_results",
                         lambda tid, entities, rels: written.update({"rels": rels}))
 
@@ -152,7 +184,7 @@ def test_run_valid_relationships_are_written(monkeypatch):
     ))
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_mini_pass",
                         lambda c: [_make_entity_response("Part A"), _make_entity_response("Part B")])
-    monkeypatch.setattr(graph_pipeline.embed, "embed_document", lambda t: [0.1] * 768)
+    monkeypatch.setattr(graph_pipeline.embed, "embed_entity", lambda t: [0.1] * 768)
     monkeypatch.setattr(graph_pipeline.graph_extract, "run_pass2",
                         lambda t, n: [
                             ExtractedRelationship(
@@ -164,6 +196,7 @@ def test_run_valid_relationships_are_written(monkeypatch):
                         ])
 
     written = {}
+    monkeypatch.setattr(graph_pipeline.db, "write_entities", lambda e: None)
     monkeypatch.setattr(graph_pipeline.graph_db, "write_graph_results",
                         lambda tid, entities, rels: written.update({"rels": rels}))
 
