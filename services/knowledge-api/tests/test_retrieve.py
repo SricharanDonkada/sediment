@@ -131,3 +131,25 @@ def test_vector_retrieve_injects_source_vector():
     assert len(results) == 1
     assert results[0].source == "vector"
     assert isinstance(results[0], FactResult)
+
+
+def test_merge_mixed_vector_and_graph_results():
+    from app.models import FactResult
+    vector_fact = FactResult(**{**SAMPLE_ROW, "id": "v1", "score": 0.8, "source": "vector"})
+    graph_fact = FactResult(**{
+        **SAMPLE_ROW,
+        "id": "g1",
+        "score": 0.75,
+        "source": "graph",
+        "subject": "partA",
+        "predicate": "compatible_with",
+        "object": "partB",
+        "fact": None,
+        "transcript_id": None,
+        "created_at": None,
+    })
+    result = r._merge([vector_fact], [graph_fact], top_k=10, min_score=0.5)
+    ids = [row.id for row in result]
+    assert "v1" in ids
+    assert "g1" in ids
+    assert result[0].score >= result[1].score  # sorted descending
