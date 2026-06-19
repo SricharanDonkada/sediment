@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from app import embed
+from app import db, embed
 from app.graph_models import EntityCluster, MatchedEntity
 from app.models import ExtractedFact
 
@@ -52,19 +52,11 @@ def resolve(
         if mention in alias_to_name:
             matched.setdefault(alias_to_name[mention], []).append(mention)
             continue
-        if existing_entities:
-            mention_emb = embed.embed_document(mention)
-            best_sim, best_name = 0.0, None
-            for e in existing_entities:
-                emb = e.get("embedding")
-                if not emb:
-                    continue
-                sim = _cosine_similarity(mention_emb, emb)
-                if sim > best_sim:
-                    best_sim, best_name = sim, e["canonical_name"]
-            if best_sim >= _COSINE_THRESHOLD and best_name:
-                matched.setdefault(best_name, []).append(mention)
-                continue
+        mention_emb = embed.embed_entity(mention)
+        match = db.find_closest_entity(mention_emb, _COSINE_THRESHOLD)
+        if match:
+            matched.setdefault(match["canonical_name"], []).append(mention)
+            continue
         unmatched[mention] = quotes
 
     matched_entities = []
@@ -88,7 +80,7 @@ def _cluster_unmatched(unmatched: dict[str, list[str]]) -> list[EntityCluster]:
         m = mentions[0]
         return [EntityCluster(mentions=[m], candidate_canonical=m, source_quotes=unmatched[m])]
 
-    embeddings = {m: embed.embed_document(m) for m in mentions}
+    embeddings = {m: embed.embed_entity(m) for m in mentions}
     clusters: list[list[str]] = []
 
     for mention in mentions:
