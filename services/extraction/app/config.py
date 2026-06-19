@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # PostgreSQL
     postgres_dsn: str = "postgresql://sediment:sediment@localhost:5432/sediment"
 
+    # Neo4j
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "sediment-dev"
+
     # Gemini
     gemini_extraction_model: str = "gemini-2.5-flash"
     gemini_embedding_model: str = "gemini-embedding-001"

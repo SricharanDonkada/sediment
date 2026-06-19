@@ -1,7 +1,7 @@
 # services/extraction/app/pipeline.py
 import logging
 
-from app import db, embed, extract
+from app import db, embed, extract, graph_pipeline
 
 log = logging.getLogger("extraction.pipeline")
 
@@ -36,3 +36,5 @@ def run(transcript_id: str, text: str) -> None:
 
     db.store_facts(transcript_id, rows)
     log.info("stored %d facts | transcript_id=%s", len(rows), transcript_id)
+
+    graph_pipeline.run(transcript_id, text, facts)
