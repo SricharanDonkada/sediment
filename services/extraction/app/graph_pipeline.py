@@ -1,6 +1,6 @@
 import logging
 
-from app import embed, graph_db, graph_extract, graph_resolve
+from app import db, embed, graph_db, graph_extract, graph_resolve
 from app.graph_models import CanonicalizedEntity
 from app.models import ExtractedFact
 
@@ -13,7 +13,7 @@ def run(transcript_id: str, transcript: str, facts: list[ExtractedFact]) -> None
         log.info("no entity mentions | transcript_id=%s", transcript_id)
         return
 
-    existing = graph_db.get_all_entities()
+    existing = db.get_all_entities()
     new_clusters, matched_entities = graph_resolve.resolve(mention_index, existing)
 
     existing_by_name = {e["canonical_name"]: e for e in existing}

@@ -36,7 +36,7 @@ def _make_cluster(name: str) -> EntityCluster:
 
 def test_run_short_circuits_when_no_entity_mentions(monkeypatch):
     get_all_called = []
-    monkeypatch.setattr(graph_pipeline.graph_db, "get_all_entities",
+    monkeypatch.setattr(graph_pipeline.db, "get_all_entities",
                         lambda: get_all_called.append(1) or [])
 
     graph_pipeline.run("t1.txt", "transcript", [_make_fact([])])
@@ -47,7 +47,7 @@ def test_run_short_circuits_when_no_entity_mentions(monkeypatch):
 def test_run_matched_entities_do_not_go_through_mini_pass(monkeypatch):
     mini_pass_called = []
 
-    monkeypatch.setattr(graph_pipeline.graph_db, "get_all_entities", lambda: [
+    monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [
         {"canonical_name": "Existing TXV", "aliases": [], "embedding": []}
     ])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
@@ -68,7 +68,7 @@ def test_run_matched_entities_do_not_go_through_mini_pass(monkeypatch):
 def test_run_update_entity_aliases_called_only_when_new_aliases(monkeypatch):
     alias_calls = []
 
-    monkeypatch.setattr(graph_pipeline.graph_db, "get_all_entities", lambda: [
+    monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [
         {"canonical_name": "TXV", "aliases": ["the TXV"], "embedding": []}
     ])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
@@ -89,7 +89,7 @@ def test_run_update_entity_aliases_called_only_when_new_aliases(monkeypatch):
 def test_run_pass2_receives_both_new_and_matched_canonical_names(monkeypatch):
     pass2_names = []
 
-    monkeypatch.setattr(graph_pipeline.graph_db, "get_all_entities", lambda: [
+    monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [
         {"canonical_name": "Existing Entity", "aliases": [], "embedding": []}
     ])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
@@ -115,7 +115,7 @@ def test_run_pass2_receives_both_new_and_matched_canonical_names(monkeypatch):
 
 
 def test_run_invalid_relationships_skipped_and_logged(monkeypatch, caplog):
-    monkeypatch.setattr(graph_pipeline.graph_db, "get_all_entities", lambda: [])
+    monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
         [_make_cluster("Part A")],
         [],
@@ -145,7 +145,7 @@ def test_run_invalid_relationships_skipped_and_logged(monkeypatch, caplog):
 
 
 def test_run_valid_relationships_are_written(monkeypatch):
-    monkeypatch.setattr(graph_pipeline.graph_db, "get_all_entities", lambda: [])
+    monkeypatch.setattr(graph_pipeline.db, "get_all_entities", lambda: [])
     monkeypatch.setattr(graph_pipeline.graph_resolve, "resolve", lambda mi, ex: (
         [_make_cluster("Part A"), _make_cluster("Part B")],
         [],
