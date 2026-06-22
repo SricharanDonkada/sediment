@@ -178,6 +178,11 @@ services:
       POSTGRES_DSN: postgresql://${POSTGRES_USER:-sediment}:${POSTGRES_PASSWORD:-sediment}@postgres:5432/${POSTGRES_DB:-sediment}
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
       GEMINI_SYNTHESIS_MODEL: ${GEMINI_SYNTHESIS_MODEL:-gemini-2.5-flash}
+      GEMINI_PLANNER_MODEL: ${GEMINI_PLANNER_MODEL:-gemini-2.5-flash-lite}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-sediment-dev}
+      ENTITY_RESOLUTION_THRESHOLD: ${ENTITY_RESOLUTION_THRESHOLD:-0.92}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:?Set GOOGLE_CLOUD_PROJECT in .env}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-asia-south1}
       GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
@@ -185,6 +190,8 @@ services:
       - "${KNOWLEDGE_API_PORT:-8001}:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     volumes:
       - ${GCLOUD_CONFIG_DIR:-${HOME}/.config/gcloud}:/root/.config/gcloud:ro

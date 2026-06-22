@@ -1,7 +1,9 @@
-from app import db, embed
+import logging
+
+from app import db, embed, entity_resolve, graph, planner
 from app.models import FactResult
 
-_GRAPH_CATEGORIES = {"compatibility", "incompatibility", "substitution", "ordering_pattern"}
+log = logging.getLogger("knowledge_api.retrieve")
 
 
 def _vector_retrieve(
@@ -9,30 +11,26 @@ def _vector_retrieve(
     top_k: int,
     category: str | None,
     min_score: float,
-) -> list[dict]:
-    return db.search_facts(embedding, top_k, category, min_score)
-
-
-def _graph_retrieve(embedding: list[float], category: str | None) -> list[dict]:
-    # Phase 2: activate Neo4j here
-    return []
+) -> list[FactResult]:
+    rows = db.search_facts(embedding, top_k, category, min_score)
+    return [FactResult(**{**row, "source": "vector"}) for row in rows]
 
 
 def _merge(
-    vector_results: list[dict],
-    graph_results: list[dict],
+    vector_results: list[FactResult],
+    graph_results: list[FactResult],
     top_k: int,
     min_score: float,
-) -> list[dict]:
-    seen: dict[str, dict] = {}
+) -> list[FactResult]:
+    seen: dict[str, FactResult] = {}
     for row in vector_results + graph_results:
-        rid = row["id"]
-        row_score = row.get("score") or 0.0
-        existing_score = seen[rid].get("score") or 0.0 if rid in seen else -1.0
+        rid = row.id
+        row_score = row.score or 0.0
+        existing_score = seen[rid].score or 0.0 if rid in seen else -1.0
         if row_score > existing_score:
             seen[rid] = row
-    filtered = [row for row in seen.values() if (row.get("score") or 0.0) >= min_score]
-    return sorted(filtered, key=lambda row: row.get("score") or 0.0, reverse=True)[:top_k]
+    filtered = [row for row in seen.values() if (row.score or 0.0) >= min_score]
+    return sorted(filtered, key=lambda row: row.score or 0.0, reverse=True)[:top_k]
 
 
 def retrieve(
@@ -41,9 +39,27 @@ def retrieve(
     min_score: float,
     category: str | None,
 ) -> list[FactResult]:
-    embedding = embed.embed_query(query)
-    vector_results = _vector_retrieve(embedding, top_k, category, min_score)
-    use_graph = category is None or category in _GRAPH_CATEGORIES
-    graph_results = _graph_retrieve(embedding, category) if use_graph else []
-    merged = _merge(vector_results, graph_results, top_k, min_score)
-    return [FactResult(**row) for row in merged]
+    graph_plan = planner.plan(query)
+
+    graph_results: list[FactResult] = []
+    if graph_plan.entity and graph_plan.operations:
+        canonical = entity_resolve.resolve(graph_plan.entity)
+        if canonical:
+            graph_results = graph.execute_operations(canonical, graph_plan.operations)
+            if graph_results:
+                log.info(
+                    "graph retrieved %d result(s) for entity=%r ops=%r",
+                    len(graph_results),
+                    canonical,
+                    graph_plan.operations,
+                )
+        else:
+            log.debug(
+                "entity resolution failed for mention=%r, skipping graph ops",
+                graph_plan.entity,
+            )
+
+    query_embedding = embed.embed_query(query)
+    vector_results = _vector_retrieve(query_embedding, top_k, category, min_score)
+
+    return _merge(vector_results, graph_results, top_k, min_score)

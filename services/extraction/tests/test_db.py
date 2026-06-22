@@ -77,6 +77,156 @@ def test_ensure_schema_executes_ddl(monkeypatch):
     assert "hnsw" in sql_blob
 
 
+def test_ensure_schema_creates_entities_table(monkeypatch):
+    executed = []
+
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql):
+            executed.append(sql.strip())
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+        def commit(self): pass
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
+    db.ensure_schema()
+
+    sql_blob = " ".join(executed)
+    assert "CREATE TABLE IF NOT EXISTS entities" in sql_blob
+    assert "entities_embedding_hnsw" in sql_blob
+
+
+def test_get_all_entities_returns_name_and_aliases(monkeypatch):
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql): pass
+        def fetchall(self):
+            return [("Taco 007", ["taco 007", "the pump"])]
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    result = db.get_all_entities()
+
+    assert result == [{"canonical_name": "Taco 007", "aliases": ["taco 007", "the pump"]}]
+
+
+def test_write_entities_executes_upsert(monkeypatch):
+    from app.graph_models import CanonicalizedEntity, DomainEntityType
+
+    executed = []
+
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params):
+            executed.append((sql, params))
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+        def commit(self): pass
+        def rollback(self): pass
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+
+    entity = CanonicalizedEntity(
+        canonical_name="Taco 007",
+        entity_type=DomainEntityType.component,
+        aliases=["Taco 007", "the pump"],
+        embedding=[0.1] * 768,
+    )
+    db.write_entities([entity])
+
+    assert len(executed) == 1
+    sql, params = executed[0]
+    assert "ON CONFLICT (canonical_name) DO UPDATE" in sql
+    assert "embedding" not in sql.split("DO UPDATE")[1]
+    assert params[0] == "Taco 007"
+    assert params[1] == "component"
+    assert params[2] == ["Taco 007", "the pump"]
+
+
+def test_update_entity_aliases_no_op_for_empty(monkeypatch):
+    conn_called = []
+    monkeypatch.setattr(db, "_get_conn", lambda: conn_called.append(1))
+    db.update_entity_aliases({})
+    assert conn_called == []
+
+
+def test_update_entity_aliases_executes_update(monkeypatch):
+    executed = []
+
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params):
+            executed.append(params)
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+        def commit(self): pass
+        def rollback(self): pass
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    db.update_entity_aliases({"TXV": ["TXV", "the TXV", "txv valve"]})
+
+    assert len(executed) == 1
+    assert executed[0] == (["TXV", "the TXV", "txv valve"], "TXV")
+
+
+def test_find_closest_entity_returns_none_when_table_empty(monkeypatch):
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params): pass
+        def fetchone(self): return None
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
+    result = db.find_closest_entity([0.1] * 768, threshold=0.92)
+    assert result is None
+
+
+def test_find_closest_entity_returns_none_below_threshold(monkeypatch):
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params): pass
+        def fetchone(self): return ("Taco 007", ["taco 007"], 0.85)
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
+    result = db.find_closest_entity([0.1] * 768, threshold=0.92)
+    assert result is None
+
+
+def test_find_closest_entity_returns_match_above_threshold(monkeypatch):
+    class FakeCursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params): pass
+        def fetchone(self): return ("Taco 007", ["taco 007", "the pump"], 0.97)
+
+    class FakeConn:
+        def cursor(self): return FakeCursor()
+
+    monkeypatch.setattr(db, "_get_conn", lambda: FakeConn())
+    monkeypatch.setattr(db, "register_vector", lambda conn: None)
+    result = db.find_closest_entity([0.1] * 768, threshold=0.92)
+    assert result == {"canonical_name": "Taco 007", "aliases": ["taco 007", "the pump"]}
+
+
 # ── Integration tests (require live Postgres) ─────────────────────────────────
 
 @pytest.mark.integration

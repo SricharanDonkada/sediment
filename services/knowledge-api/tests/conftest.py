@@ -8,7 +8,8 @@ import main
 
 @pytest.fixture
 def client():
-    """TestClient with DB pool patched out — routes patch their own DB calls."""
-    with patch("app.db.init_pool"), patch("app.db.close_pool"):
+    """TestClient with DB pool and graph driver patched out."""
+    with patch("app.db.init_pool"), patch("app.db.close_pool"), \
+         patch("app.graph.init"), patch("app.graph.close"):
         with TestClient(main.app) as c:
             yield c

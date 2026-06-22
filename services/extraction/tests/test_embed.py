@@ -80,3 +80,30 @@ def test_embed_document_passes_retrieval_document_task_type(monkeypatch):
     embed.embed_document("test")
 
     assert received["config"].task_type == "RETRIEVAL_DOCUMENT"
+
+
+def test_embed_entity_uses_semantic_similarity(monkeypatch):
+    received = {}
+
+    class FakeEmbedding:
+        values = [0.2] * 768
+
+    class FakeResponse:
+        embeddings = [FakeEmbedding()]
+
+    class FakeModels:
+        def embed_content(self, model, contents, config):
+            received["contents"] = contents
+            received["config"] = config
+            return FakeResponse()
+
+    class FakeClient:
+        models = FakeModels()
+
+    monkeypatch.setattr(embed, "_get_client", lambda: FakeClient())
+    result = embed.embed_entity("Taco 007 Circulator")
+
+    assert len(result) == 768
+    assert result == [0.2] * 768
+    assert received["config"].task_type == "SEMANTIC_SIMILARITY"
+    assert received["contents"] == "Taco 007 Circulator"

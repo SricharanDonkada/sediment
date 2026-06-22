@@ -13,7 +13,6 @@ def _make_entity(name: str, brand: str | None = None) -> CanonicalizedEntity:
         canonical_name=name,
         entity_type=DomainEntityType.component,
         aliases=[name],
-        embedding=[0.0] * 768,
         brand=brand,
     )
 
@@ -107,6 +106,26 @@ def test_confidence_averaging_formula():
     assert result == pytest.approx((4.0 + 0.6) / 6)
 
 
+def test_write_graph_results_entity_cypher_has_no_embedding(monkeypatch):
+    queries = []
+
+    class FakeSession:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def run(self, cypher, **params):
+            queries.append(cypher.strip())
+
+    class FakeDriver:
+        def session(self): return FakeSession()
+
+    monkeypatch.setattr(graph_db, "_get_driver", lambda: FakeDriver())
+    graph_db.write_graph_results("t1", [_make_entity("Test Part")], [])
+
+    merge_cyphers = [q for q in queries if "MERGE" in q and "canonical_name" in q]
+    for cypher in merge_cyphers:
+        assert "embedding" not in cypher
+
+
 # ── Integration tests (require live Neo4j) ────────────────────────────────────
 
 @pytest.mark.integration
@@ -121,11 +140,14 @@ def test_write_and_read_entity_round_trip():
     entity = _make_entity("Integration Test Pump")
     graph_db.write_graph_results("int-tx-001", [entity], [])
 
-    all_entities = graph_db.get_all_entities()
-    names = [e["canonical_name"] for e in all_entities]
-    assert "Integration Test Pump" in names
-
     driver = graph_db._get_driver()
+    with driver.session() as s:
+        row = s.run(
+            "MATCH (e:Entity {canonical_name: $name}) RETURN e.canonical_name AS name",
+            name="Integration Test Pump",
+        ).single()
+        assert row["name"] == "Integration Test Pump"
+
     with driver.session() as s:
         s.run("MATCH (e:Entity {canonical_name: 'Integration Test Pump'}) DETACH DELETE e")
 
@@ -137,11 +159,14 @@ def test_write_graph_results_is_idempotent():
     graph_db.write_graph_results("int-tx-idem", [entity], [])
     graph_db.write_graph_results("int-tx-idem", [entity], [])
 
-    all_entities = graph_db.get_all_entities()
-    matching = [e for e in all_entities if e["canonical_name"] == "Idempotency Test Entity"]
-    assert len(matching) == 1
-
     driver = graph_db._get_driver()
+    with driver.session() as s:
+        row = s.run(
+            "MATCH (e:Entity {canonical_name: $name}) RETURN count(e) AS cnt",
+            name="Idempotency Test Entity",
+        ).single()
+        assert row["cnt"] == 1
+
     with driver.session() as s:
         s.run("MATCH (e:Entity {canonical_name: 'Idempotency Test Entity'}) DETACH DELETE e")
 
@@ -195,13 +220,18 @@ def test_update_entity_aliases_merges_new_aliases():
     entity = _make_entity("Alias Update Test Entity")
     graph_db.write_graph_results("int-tx-alias", [entity], [])
 
-    graph_db.update_entity_aliases({"Alias Update Test Entity": ["Alias Update Test Entity", "new alias A", "new alias B"]})
-
-    all_entities = graph_db.get_all_entities()
-    match = next(e for e in all_entities if e["canonical_name"] == "Alias Update Test Entity")
-    assert "new alias A" in match["aliases"]
-    assert "new alias B" in match["aliases"]
+    graph_db.update_entity_aliases({
+        "Alias Update Test Entity": ["Alias Update Test Entity", "new alias A", "new alias B"]
+    })
 
     driver = graph_db._get_driver()
+    with driver.session() as s:
+        row = s.run(
+            "MATCH (e:Entity {canonical_name: $name}) RETURN e.aliases AS aliases",
+            name="Alias Update Test Entity",
+        ).single()
+        assert "new alias A" in row["aliases"]
+        assert "new alias B" in row["aliases"]
+
     with driver.session() as s:
         s.run("MATCH (e:Entity {canonical_name: 'Alias Update Test Entity'}) DETACH DELETE e")

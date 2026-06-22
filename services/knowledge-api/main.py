@@ -4,11 +4,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
-from app import db
+from app import db, graph
+from app.config import settings
 from app.routes import facts, query, stats
 
-# Loaded at import time — a missing or unreadable template crashes startup (all endpoints).
-# Ensure the Dockerfile copies services/knowledge-api/app/templates/.
 _INDEX_HTML = (Path(__file__).parent / "app" / "templates" / "index.html").read_text(
     encoding="utf-8"
 )
@@ -17,7 +16,9 @@ _INDEX_HTML = (Path(__file__).parent / "app" / "templates" / "index.html").read_
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_pool()
+    graph.init(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
     yield
+    graph.close()
     db.close_pool()
 
 

@@ -55,25 +55,6 @@ def ensure_schema() -> None:
     log.info("Neo4j schema ensured")
 
 
-def get_all_entities() -> list[dict]:
-    driver = _get_driver()
-    with driver.session() as session:
-        result = session.run(
-            "MATCH (e:Entity) "
-            "RETURN e.canonical_name AS canonical_name, "
-            "       e.aliases AS aliases, "
-            "       e.embedding AS embedding"
-        )
-        return [
-            {
-                "canonical_name": r["canonical_name"],
-                "aliases": list(r["aliases"] or []),
-                "embedding": list(r["embedding"] or []),
-            }
-            for r in result
-        ]
-
-
 def update_entity_aliases(alias_updates: dict[str, list[str]]) -> None:
     if not alias_updates:
         return
@@ -104,17 +85,16 @@ def write_graph_results(
                   e.type        = $type,
                   e.aliases     = $aliases,
                   e.part_number = $part_number,
-                  e.embedding   = $embedding,
                   e.created_at  = datetime(),
                   e.updated_at  = datetime()
                 ON MATCH SET
-                  e.updated_at = datetime()
+                  e.updated_at = datetime(),
+                  e.aliases    = $aliases
                 """,
                 canonical_name=entity.canonical_name,
                 type=entity.entity_type.value,
                 aliases=aliases,
                 part_number=entity.part_number,
-                embedding=entity.embedding,
             )
             if entity.brand:
                 session.run(
@@ -123,7 +103,6 @@ def write_graph_results(
                     ON CREATE SET
                       b.type       = 'brand',
                       b.aliases    = [],
-                      b.embedding  = [],
                       b.created_at = datetime(),
                       b.updated_at = datetime()
                     ON MATCH SET b.updated_at = datetime()
