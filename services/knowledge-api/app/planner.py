@@ -63,7 +63,7 @@ EMPTY_PLAN = GraphPlan(entity=None, operations=[])
 def _get_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = genai.Client(vertexai=True)
+        _client = genai.Client(vertexai=True, location="global")
     return _client
 
 
@@ -85,5 +85,5 @@ def plan(query: str) -> GraphPlan:
         result.operations = [op for op in result.operations if op in _KNOWN_OPS]
         return result
     except Exception:
-        log.warning("planner failed for query=%r, returning empty plan", query)
+        log.warning("planner failed for query=%r, returning empty plan", query, exc_info=True)
         return EMPTY_PLAN

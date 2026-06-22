@@ -46,6 +46,13 @@ def retrieve(
         canonical = entity_resolve.resolve(graph_plan.entity)
         if canonical:
             graph_results = graph.execute_operations(canonical, graph_plan.operations)
+            if graph_results:
+                log.info(
+                    "graph retrieved %d result(s) for entity=%r ops=%r",
+                    len(graph_results),
+                    canonical,
+                    graph_plan.operations,
+                )
         else:
             log.debug(
                 "entity resolution failed for mention=%r, skipping graph ops",
